@@ -17,6 +17,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 4 (frontend) completed and tested — technician queue, new ticket, and manager dashboard, including the SLA and resolve-by-user sub-phases: all 4 headline metrics from the design doc (§2.3) now have real data
 ✅ Custom visual identity applied across all 4 screens — blue sidebar, Plus Jakarta Sans typeface, priority/status badges (design process documented in `CLAUDE.md`)
 ✅ Ticket detail screen — technician can assign, change status/priority/category, and log history entries, straight from the UI
+✅ Ticket tracking (end user) + KB search (technician) — close the design doc's last remaining gaps (§2.1/§2.2)
 
 ---
 
@@ -111,6 +112,11 @@ python test_phase4_resolve_by_user.py
 # API, then cleans up
 python test_phase4_interactions.py
 
+# runs the requester_id filter test (ticket tracking) and the KB text
+# search test, via the real API, then clean up
+python test_phase4_meus_chamados.py
+python test_phase4_kb_search.py
+
 # seeds the database with persistent dev data (users, categories, sla_rules,
 # kb_articles, sample tickets) — needed so the frontend's 3 screens have
 # something to show. Idempotent, safe to re-run. Password for every seeded
@@ -147,12 +153,12 @@ GET    /health
 POST   /auth/login                  → login (email + password) → JWT
 GET    /auth/me                     → authenticated user's data (requires Bearer token)
 POST   /tickets                     → creates a ticket (AI triage runs automatically) — requires login
-GET    /tickets                     → list (filters: status, priority, assignee_id) — requires login
+GET    /tickets                     → list (filters: status, priority, assignee_id, requester_id) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
 POST   /tickets/{id}/interactions   → logs a history entry on the ticket — requires login
 POST   /tickets/{id}/resolve-by-user → user closes their own ticket via the AI suggestion — requires login (requester only)
-GET    /kb-articles                 → lists KB articles (optional ?category_id= filter) — requires login
+GET    /kb-articles                 → lists/searches KB articles (optional ?category_id= and ?query= filters) — requires login
 GET    /kb-articles/{id}            → detail for one article — requires login
 GET    /dashboard/summary           → manager dashboard metrics — requires login with role=manager
 ```
@@ -216,7 +222,13 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - Closes the biggest remaining functional gap: until now, the frontend only read data — it never called `PATCH /tickets/{id}` or created an interaction, even though those endpoints already existed.
 - New `/tickets/{id}` route (queue rows became clickable). The technician can: assign the ticket to themselves, change status/priority/category (a single `PATCH`), and log updates to the history (`POST /tickets/{id}/interactions`).
 - Reassignment is "to myself" only (no picker for other technicians — there's no `GET /users`). Interactions are plain text only, no edit/delete/attachments.
-- **Still open:** end-user ticket tracking (§2.1) and KB search for technicians (§2.2) — the detail URL works for any logged-in user, but there's no dedicated view or entry point for those personas yet.
+
+### Ticket tracking + KB search (Phase 4, closes the design doc's last remaining gaps)
+
+- **End-user ticket tracking (§2.1):** new `/meus-chamados` screen — lists the user's own tickets (`GET /tickets?requester_id=`), clickable to open the detail view. `NewTicketPage` gained a "Meus chamados" link in the header.
+- **KB search for technicians (§2.2):** new `/base-conhecimento` screen — free-text search (`GET /kb-articles?query=`, case-insensitive substring on title or content) plus a category filter. The technician's sidebar now has both real items (Fila de chamados + Base de conhecimento).
+- `TicketDetailPage` now serves both personas from the same component: technicians see the sidebar + action panel; end users see a read-only view (info + AI suggestion + history), with no sidebar and no action panel.
+- With this, there's no known gap left from the original design doc (§2).
 
 ---
 

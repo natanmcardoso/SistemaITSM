@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError, createTicket, getKbArticlesByCategory, resolveByUser } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
@@ -105,16 +105,24 @@ export function NewTicketPage() {
             </div>
             <p className="text-sm text-slate-500">Logado como {auth.user.name}</p>
           </div>
-          <button
-            onClick={() => {
-              signOut();
-              navigate("/login");
-            }}
-            className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
-          >
-            <IconLogout width={14} height={14} />
-            Sair
-          </button>
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/meus-chamados"
+              className="rounded-full border-[1.5px] border-primary px-4 py-2 text-[13px] font-bold text-primary hover:bg-primary-tint"
+            >
+              Meus chamados
+            </Link>
+            <button
+              onClick={() => {
+                signOut();
+                navigate("/login");
+              }}
+              className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <IconLogout width={14} height={14} />
+              Sair
+            </button>
+          </div>
         </header>
 
         {!created ? (

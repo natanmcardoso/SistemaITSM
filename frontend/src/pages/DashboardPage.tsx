@@ -75,7 +75,9 @@ export function DashboardPage() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar
         groupLabel="Gestão"
-        navItem={{ label: "Dashboard", icon: <IconChart width={18} height={18} /> }}
+        navItems={[
+          { label: "Dashboard", icon: <IconChart width={18} height={18} />, href: "/dashboard", active: true },
+        ]}
         userName={auth.user.name}
         userRoleLabel="Gestor(a)"
         onSignOut={() => {

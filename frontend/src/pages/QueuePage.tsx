@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { Sidebar } from "../components/Sidebar";
 import { StatusBadge } from "../components/StatusBadge";
-import { IconTicket } from "../components/icons";
+import { IconBook, IconTicket } from "../components/icons";
 import { CATEGORY_NAMES, USER_NAMES } from "../devData";
 import type { TicketOut, TicketPriority } from "../types";
 
@@ -116,7 +116,10 @@ export function QueuePage() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar
         groupLabel="Chamados"
-        navItem={{ label: "Fila de chamados", icon: <IconTicket width={18} height={18} /> }}
+        navItems={[
+          { label: "Fila de chamados", icon: <IconTicket width={18} height={18} />, href: "/fila", active: true },
+          { label: "Base de conhecimento", icon: <IconBook width={18} height={18} />, href: "/base-conhecimento" },
+        ]}
         userName={auth.user.name}
         userRoleLabel="Técnico(a)"
         onSignOut={() => {

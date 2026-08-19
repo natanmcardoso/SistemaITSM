@@ -1,24 +1,26 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { IconLogout, IconTicket } from "./icons";
 
 interface SidebarNavItem {
   label: string;
   icon: ReactNode;
+  href: string;
+  active?: boolean;
 }
 
 interface SidebarProps {
   groupLabel: string;
-  navItem: SidebarNavItem;
+  navItems: SidebarNavItem[];
   userName: string;
   userRoleLabel: string;
   onSignOut: () => void;
 }
 
-// Sidebar compartilhada entre fila do técnico e dashboard do gestor (design
-// canvas aprovado — Prototipos do sistema/). Só 1 item de navegação por
-// persona hoje, de propósito: não lista telas que ainda não existem (ex.:
-// "base de conhecimento" do mockup) — ver CLAUDE.md.
-export function Sidebar({ groupLabel, navItem, userName, userRoleLabel, onSignOut }: SidebarProps) {
+// Sidebar compartilhada entre as telas do técnico e o dashboard do gestor
+// (design canvas aprovado — Prototipos do sistema/). Cada persona só vê os
+// itens que já existem de verdade como tela — ver CLAUDE.md.
+export function Sidebar({ groupLabel, navItems, userName, userRoleLabel, onSignOut }: SidebarProps) {
   const initials = userName
     .split(" ")
     .map((part) => part[0])
@@ -37,10 +39,18 @@ export function Sidebar({ groupLabel, navItem, userName, userRoleLabel, onSignOu
 
       <div className="mb-2 px-2 text-[11px] font-bold tracking-wider text-white/55 uppercase">{groupLabel}</div>
       <div className="mb-5 flex flex-col gap-0.5">
-        <div className="flex items-center gap-2.5 rounded-lg bg-white/15 px-3 py-2.5 text-sm font-semibold">
-          {navItem.icon}
-          {navItem.label}
-        </div>
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            to={item.href}
+            className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold ${
+              item.active ? "bg-white/15" : "text-white/75 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            {item.icon}
+            {item.label}
+          </Link>
+        ))}
       </div>
 
       <div className="flex-1" />

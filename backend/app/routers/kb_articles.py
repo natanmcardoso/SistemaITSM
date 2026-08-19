@@ -1,18 +1,19 @@
-"""Base de conhecimento (Fase 4, sub-fase resolve-by-user).
+"""Base de conhecimento (Fase 4, sub-fase resolve-by-user; busca por texto
+adicionada na fase de fechamento dos gaps de §2.1/§2.2).
 
 Simplificação de escopo registrada no CLAUDE.md: o design doc (§5) imagina a
 IA de triagem já devolvendo o artigo sugerido junto com categoria/prioridade.
 Aqui a sugestão é feita casando por `category_id` (sem envolver a IA) — não
 mexe no serviço de triagem já fechado e testado (app/services/triage.py).
 
-`GET /kb-articles` também é o endpoint de busca do design doc (§4), mas com
-filtro por `category_id` em vez de busca livre por `query` — não há caso de
-uso hoje que precise de busca textual.
+`GET /kb-articles?query=` cobre a busca livre do design doc (§4) — substring
+case-insensitive em título OU conteúdo, combinável com `category_id`.
 """
 import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -24,11 +25,18 @@ router = APIRouter(prefix="/kb-articles", tags=["kb-articles"], dependencies=[De
 
 
 @router.get("", response_model=list[KBArticleOut])
-def list_kb_articles(category_id: Optional[uuid.UUID] = Query(None), db: Session = Depends(get_db)):
-    query = db.query(KBArticle)
+def list_kb_articles(
+    category_id: Optional[uuid.UUID] = Query(None),
+    query: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    q = db.query(KBArticle)
     if category_id is not None:
-        query = query.filter(KBArticle.category_id == category_id)
-    return query.order_by(KBArticle.times_suggested.desc()).all()
+        q = q.filter(KBArticle.category_id == category_id)
+    if query:
+        term = f"%{query}%"
+        q = q.filter(or_(KBArticle.title.ilike(term), KBArticle.content.ilike(term)))
+    return q.order_by(KBArticle.times_suggested.desc()).all()
 
 
 @router.get("/{article_id}", response_model=KBArticleOut)

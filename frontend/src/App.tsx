@@ -3,7 +3,9 @@ import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { homeRouteForRole } from "./auth/routing";
 import { DashboardPage } from "./pages/DashboardPage";
+import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 import { LoginPage } from "./pages/LoginPage";
+import { MeusChamadosPage } from "./pages/MeusChamadosPage";
 import { NewTicketPage } from "./pages/NewTicketPage";
 import { QueuePage } from "./pages/QueuePage";
 import { TicketDetailPage } from "./pages/TicketDetailPage";
@@ -44,6 +46,22 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <TicketDetailPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/meus-chamados"
+        element={
+          <RequireAuth>
+            <MeusChamadosPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/base-conhecimento"
+        element={
+          <RequireAuth>
+            <KnowledgeBasePage />
           </RequireAuth>
         }
       />

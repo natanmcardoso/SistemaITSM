@@ -87,6 +87,7 @@ def list_tickets(
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
     assignee_id: Optional[uuid.UUID] = Query(None),
+    requester_id: Optional[uuid.UUID] = Query(None),
     db: Session = Depends(get_db),
 ):
     query = db.query(Ticket)
@@ -96,6 +97,8 @@ def list_tickets(
         query = query.filter(Ticket.priority == priority)
     if assignee_id is not None:
         query = query.filter(Ticket.assignee_id == assignee_id)
+    if requester_id is not None:
+        query = query.filter(Ticket.requester_id == requester_id)
     return query.order_by(Ticket.created_at.desc()).all()
 
 

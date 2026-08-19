@@ -1,11 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { addInteraction, ApiError, getTicketDetail, updateTicket } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { Sidebar } from "../components/Sidebar";
 import { StatusBadge } from "../components/StatusBadge";
-import { IconTicket } from "../components/icons";
+import { IconBook, IconLogout, IconTicket } from "../components/icons";
 import { CATEGORY_NAMES, USER_NAMES } from "../devData";
 import type { TicketDetailOut, TicketPriority, TicketStatus } from "../types";
 
@@ -29,11 +29,18 @@ function formatDate(iso: string): string {
 
 // Tela de detalhe do chamado (design doc §2.2: "histórico + sugestão da IA +
 // campo de ação"). Único ponto do frontend que chama PATCH /tickets/{id} e
-// POST /tickets/{id}/interactions — até aqui, a fila era só leitura.
+// POST /tickets/{id}/interactions.
+//
+// Serve 2 personas com o mesmo componente: técnico vê a sidebar + o painel
+// de ações (atribuir/status/prioridade/categoria); usuário final vê só a
+// leitura (info + sugestão da IA + histórico) num header leve, igual ao das
+// telas dele — sem ações, porque a única "ação" que o usuário final tem
+// sobre o próprio chamado é resolve-by-user, na tela de novo chamado.
 export function TicketDetailPage() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const { auth, signOut } = useAuth();
   const navigate = useNavigate();
+  const isTechnician = auth?.user.role === "technician";
 
   const [ticket, setTicket] = useState<TicketDetailOut | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -117,86 +124,71 @@ export function TicketDetailPage() {
   const reclassifiedCategory =
     ticket?.ai_suggested_category_id !== null && ticket?.ai_suggested_category_id !== ticket?.category_id;
 
-  return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar
-        groupLabel="Chamados"
-        navItem={{ label: "Fila de chamados", icon: <IconTicket width={18} height={18} /> }}
-        userName={auth.user.name}
-        userRoleLabel="Técnico(a)"
-        onSignOut={() => {
-          signOut();
-          navigate("/login");
-        }}
-      />
+  const content = (
+    <>
+      {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
 
-      <div className="min-w-0 flex-1 px-8 py-7">
-        <Link to="/fila" className="mb-4 inline-block text-sm font-bold text-slate-500 hover:text-slate-700">
-          ← Voltar pra fila
-        </Link>
+      {!ticket && !loadError ? (
+        <p className="text-sm text-slate-500">Carregando...</p>
+      ) : ticket ? (
+        <div className="max-w-3xl">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">{ticket.title}</h1>
+            <StatusBadge status={ticket.status} />
+            <PriorityBadge priority={ticket.priority} />
+          </div>
 
-        {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
-
-        {!ticket && !loadError ? (
-          <p className="text-sm text-slate-500">Carregando...</p>
-        ) : ticket ? (
-          <div className="max-w-3xl">
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">{ticket.title}</h1>
-              <StatusBadge status={ticket.status} />
-              <PriorityBadge priority={ticket.priority} />
-            </div>
-
-            {/* Info do chamado */}
-            <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
-              <p className="mb-4 text-sm whitespace-pre-line text-slate-700">{ticket.description}</p>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-                <div>
-                  <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Solicitante</dt>
-                  <dd className="text-slate-700">{USER_NAMES[ticket.requester_id] ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Categoria</dt>
-                  <dd className="text-slate-700">
-                    {ticket.category_id ? CATEGORY_NAMES[ticket.category_id] ?? "—" : "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Atribuído a</dt>
-                  <dd className="text-slate-700">
-                    {ticket.assignee_id ? USER_NAMES[ticket.assignee_id] ?? "—" : "Não atribuído"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Criado em</dt>
-                  <dd className="text-slate-700">{formatDate(ticket.created_at)}</dd>
-                </div>
-                <div>
-                  <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Prazo de SLA</dt>
-                  <dd className="text-slate-700">{ticket.sla_due_at ? formatDate(ticket.sla_due_at) : "—"}</dd>
-                </div>
-              </dl>
-            </div>
-
-            {/* Sugestão da IA */}
-            {(ticket.ai_suggested_priority || ticket.ai_suggested_category_id) && (
-              <div className="mb-4 rounded-2xl border border-[#C7D7FB] bg-primary-tint p-5">
-                <div className="mb-2 text-xs font-bold text-primary uppercase">Sugestão original da IA</div>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-700">
-                  <span>
-                    Prioridade: <PriorityBadge priority={ticket.ai_suggested_priority} />{" "}
-                    {reclassifiedPriority ? "(reclassificada)" : "(mantida)"}
-                  </span>
-                  <span>
-                    Categoria:{" "}
-                    {ticket.ai_suggested_category_id ? CATEGORY_NAMES[ticket.ai_suggested_category_id] ?? "—" : "—"}{" "}
-                    {reclassifiedCategory ? "(reclassificada)" : "(mantida)"}
-                  </span>
-                </div>
+          {/* Info do chamado */}
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+            <p className="mb-4 text-sm whitespace-pre-line text-slate-700">{ticket.description}</p>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Solicitante</dt>
+                <dd className="text-slate-700">{USER_NAMES[ticket.requester_id] ?? "—"}</dd>
               </div>
-            )}
+              <div>
+                <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Categoria</dt>
+                <dd className="text-slate-700">
+                  {ticket.category_id ? CATEGORY_NAMES[ticket.category_id] ?? "—" : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Atribuído a</dt>
+                <dd className="text-slate-700">
+                  {ticket.assignee_id ? USER_NAMES[ticket.assignee_id] ?? "—" : "Não atribuído"}
+                </dd>
+              </div>
+              <div>
+                <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Criado em</dt>
+                <dd className="text-slate-700">{formatDate(ticket.created_at)}</dd>
+              </div>
+              <div>
+                <dt className="mb-0.5 text-xs font-bold text-slate-400 uppercase">Prazo de SLA</dt>
+                <dd className="text-slate-700">{ticket.sla_due_at ? formatDate(ticket.sla_due_at) : "—"}</dd>
+              </div>
+            </dl>
+          </div>
 
-            {/* Ações do técnico */}
+          {/* Sugestão da IA */}
+          {(ticket.ai_suggested_priority || ticket.ai_suggested_category_id) && (
+            <div className="mb-4 rounded-2xl border border-[#C7D7FB] bg-primary-tint p-5">
+              <div className="mb-2 text-xs font-bold text-primary uppercase">Sugestão original da IA</div>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-700">
+                <span>
+                  Prioridade: <PriorityBadge priority={ticket.ai_suggested_priority} />{" "}
+                  {reclassifiedPriority ? "(reclassificada)" : "(mantida)"}
+                </span>
+                <span>
+                  Categoria:{" "}
+                  {ticket.ai_suggested_category_id ? CATEGORY_NAMES[ticket.ai_suggested_category_id] ?? "—" : "—"}{" "}
+                  {reclassifiedCategory ? "(reclassificada)" : "(mantida)"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Ações do técnico — só pra quem é técnico */}
+          {isTechnician && (
             <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
               <div className="mb-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
                 Ações do técnico
@@ -268,49 +260,121 @@ export function TicketDetailPage() {
                 {saving ? "Salvando..." : "Salvar alterações"}
               </button>
             </div>
+          )}
 
-            {/* Histórico */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
-              <div className="mb-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Histórico</div>
+          {/* Histórico */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+            <div className="mb-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Histórico</div>
 
-              {ticket.interactions.length === 0 ? (
-                <p className="mb-4 text-sm text-slate-500">Nenhuma atualização registrada ainda.</p>
-              ) : (
-                <div className="mb-5 flex flex-col gap-4">
-                  {ticket.interactions.map((interaction) => (
-                    <div key={interaction.id} className="border-l-2 border-slate-200 pl-3.5">
-                      <div className="mb-0.5 flex items-center gap-2 text-xs">
-                        <span className="font-bold text-slate-700">
-                          {USER_NAMES[interaction.author_id] ?? "—"}
-                        </span>
-                        <span className="text-slate-400">{formatDate(interaction.created_at)}</span>
-                      </div>
-                      <p className="text-sm whitespace-pre-line text-slate-600">{interaction.content}</p>
+            {ticket.interactions.length === 0 ? (
+              <p className="mb-4 text-sm text-slate-500">Nenhuma atualização registrada ainda.</p>
+            ) : (
+              <div className="mb-5 flex flex-col gap-4">
+                {ticket.interactions.map((interaction) => (
+                  <div key={interaction.id} className="border-l-2 border-slate-200 pl-3.5">
+                    <div className="mb-0.5 flex items-center gap-2 text-xs">
+                      <span className="font-bold text-slate-700">{USER_NAMES[interaction.author_id] ?? "—"}</span>
+                      <span className="text-slate-400">{formatDate(interaction.created_at)}</span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <p className="text-sm whitespace-pre-line text-slate-600">{interaction.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              <form onSubmit={handleAddInteraction}>
-                <textarea
-                  value={newInteraction}
-                  onChange={(e) => setNewInteraction(e.target.value)}
-                  placeholder="Registrar uma atualização sobre o atendimento..."
-                  rows={3}
-                  className="mb-3 w-full resize-none rounded-[10px] border-[1.5px] border-slate-300 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none"
-                />
-                {interactionError && <p className="mb-3 text-sm text-red-600">{interactionError}</p>}
-                <button
-                  type="submit"
-                  disabled={addingInteraction || !newInteraction.trim()}
-                  className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60"
-                >
-                  {addingInteraction ? "Registrando..." : "Registrar atualização"}
-                </button>
-              </form>
-            </div>
+            <form onSubmit={handleAddInteraction}>
+              <textarea
+                value={newInteraction}
+                onChange={(e) => setNewInteraction(e.target.value)}
+                placeholder="Registrar uma atualização sobre o atendimento..."
+                rows={3}
+                className="mb-3 w-full resize-none rounded-[10px] border-[1.5px] border-slate-300 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none"
+              />
+              {interactionError && <p className="mb-3 text-sm text-red-600">{interactionError}</p>}
+              <button
+                type="submit"
+                disabled={addingInteraction || !newInteraction.trim()}
+                className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60"
+              >
+                {addingInteraction ? "Registrando..." : "Registrar atualização"}
+              </button>
+            </form>
           </div>
-        ) : null}
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (isTechnician) {
+    return (
+      <div className="flex min-h-screen bg-slate-50">
+        <Sidebar
+          groupLabel="Chamados"
+          navItems={[
+            { label: "Fila de chamados", icon: <IconTicket width={18} height={18} />, href: "/fila", active: true },
+            { label: "Base de conhecimento", icon: <IconBook width={18} height={18} />, href: "/base-conhecimento" },
+          ]}
+          userName={auth.user.name}
+          userRoleLabel="Técnico(a)"
+          onSignOut={() => {
+            signOut();
+            navigate("/login");
+          }}
+        />
+        <div className="min-w-0 flex-1 px-8 py-7">
+          <Link to="/fila" className="mb-4 inline-block text-sm font-bold text-slate-500 hover:text-slate-700">
+            ← Voltar pra fila
+          </Link>
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <MinimalChrome
+      backHref="/meus-chamados"
+      userName={auth.user.name}
+      onSignOut={() => {
+        signOut();
+        navigate("/login");
+      }}
+    >
+      {content}
+    </MinimalChrome>
+  );
+}
+
+// Header leve, sem sidebar — mesmo tratamento das telas do usuário final
+// (NewTicketPage.tsx, MeusChamadosPage.tsx).
+function MinimalChrome({
+  backHref,
+  userName,
+  onSignOut,
+  children,
+}: {
+  backHref: string;
+  userName: string;
+  onSignOut: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-slate-50 px-8 py-7">
+      <div className="mx-auto max-w-3xl">
+        <header className="mb-4 flex items-center justify-between">
+          <Link to={backHref} className="text-sm font-bold text-slate-500 hover:text-slate-700">
+            ← Voltar pra meus chamados
+          </Link>
+          <button
+            onClick={onSignOut}
+            className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
+          >
+            <IconLogout width={14} height={14} />
+            Sair
+          </button>
+        </header>
+        <p className="mb-6 text-sm text-slate-500">Logado como {userName}</p>
+        {children}
       </div>
     </div>
   );

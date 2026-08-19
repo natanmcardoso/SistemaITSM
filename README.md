@@ -17,6 +17,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 4 (frontend) concluída e testada — fila do técnico, novo chamado e dashboard do gestor, incluindo as sub-fases de SLA e resolve-by-user: as 4 métricas centrais do design doc (§2.3) têm dado real no dashboard
 ✅ Identidade visual própria aplicada nas 4 telas — sidebar azul, tipografia Plus Jakarta Sans, badges por prioridade/status (processo de design documentado no `CLAUDE.md`)
 ✅ Tela de detalhe do chamado — técnico consegue atribuir, mudar status/prioridade/categoria e registrar histórico, direto pela UI
+✅ Acompanhamento do chamado (usuário final) + busca de KB (técnico) — fecham os últimos gaps do design doc (§2.1/§2.2)
 
 ---
 
@@ -111,6 +112,11 @@ python test_phase4_resolve_by_user.py
 # via API real, depois limpa
 python test_phase4_interactions.py
 
+# roda o teste do filtro requester_id (acompanhamento do chamado) e o da
+# busca de KB por texto, via API real, depois limpam
+python test_phase4_meus_chamados.py
+python test_phase4_kb_search.py
+
 # popula o banco com dados de dev persistentes (usuários, categorias,
 # sla_rules, kb_articles, chamados de exemplo) — necessário pras 3 telas do
 # frontend terem o que mostrar. Idempotente, pode rodar de novo sem
@@ -147,12 +153,12 @@ GET    /health
 POST   /auth/login                  → login (email + senha) → JWT
 GET    /auth/me                     → dados do usuário autenticado (requer Bearer token)
 POST   /tickets                     → cria chamado (triagem por IA roda automaticamente) — requer login
-GET    /tickets                     → lista (filtros: status, priority, assignee_id) — requer login
+GET    /tickets                     → lista (filtros: status, priority, assignee_id, requester_id) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
 POST   /tickets/{id}/interactions   → registra uma entrada de histórico no chamado — requer login
 POST   /tickets/{id}/resolve-by-user → usuário fecha o próprio chamado via sugestão da IA — requer login (só o solicitante)
-GET    /kb-articles                 → lista artigos da KB (filtro opcional ?category_id=) — requer login
+GET    /kb-articles                 → lista/busca artigos da KB (filtros opcionais ?category_id= e ?query=) — requer login
 GET    /kb-articles/{id}            → detalhe de um artigo — requer login
 GET    /dashboard/summary           → métricas do dashboard do gestor — requer login com role=manager
 ```
@@ -216,7 +222,13 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - Fecha o maior gap funcional que restava: até aqui, o frontend só lia dados — nunca chamava `PATCH /tickets/{id}` nem criava uma interação, mesmo esses endpoints já existindo.
 - Nova rota `/tickets/{id}` (linhas da fila viraram clicáveis). O técnico pode: atribuir o chamado a si mesmo, trocar status/prioridade/categoria (um único `PATCH`), e registrar atualizações no histórico (`POST /tickets/{id}/interactions`).
 - Reatribuição só "pra mim" (sem select de outro técnico — não há `GET /users`). Interações são só texto, sem editar/excluir/anexo.
-- **Ainda em aberto:** acompanhamento do chamado pelo usuário final (§2.1) e busca de KB pelo técnico (§2.2) — a URL de detalhe funciona pra qualquer usuário logado, mas não há uma versão dedicada nem link de entrada pra essas personas ainda.
+
+### Acompanhamento do chamado + busca de KB (Fase 4, fecha os últimos gaps do design doc)
+
+- **Acompanhamento pelo usuário final (§2.1):** nova tela `/meus-chamados` — lista os próprios chamados (`GET /tickets?requester_id=`), clicável pra abrir o detalhe. `NewTicketPage` ganhou um link "Meus chamados" no cabeçalho.
+- **Busca de KB pelo técnico (§2.2):** nova tela `/base-conhecimento` — busca por texto (`GET /kb-articles?query=`, substring case-insensitive em título ou conteúdo) + filtro por categoria. Sidebar do técnico agora tem os dois itens de verdade (Fila de chamados + Base de conhecimento).
+- `TicketDetailPage` passou a servir as 2 personas com o mesmo componente: técnico vê a sidebar + painel de ações; usuário final vê só leitura (info + sugestão da IA + histórico), sem sidebar e sem o painel de ações.
+- Com isso, não há mais gap conhecido do design doc original (§2) em aberto.
 
 ---
 
