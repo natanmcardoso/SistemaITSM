@@ -1,10 +1,15 @@
 """
-Teste da Fase 2: endpoints core de tickets (CRUD), sem IA ainda.
+Teste da Fase 2: endpoints core de tickets (CRUD).
 
 Sobe a app FastAPI real (TestClient) contra o banco real (Neon) e valida:
 criar chamado, listar (com filtro), buscar detalhe, atualizar via API.
 Usuário/categoria de apoio são criados direto no banco (não há endpoints
 de users/categories nesta fase) e tudo é limpo ao final.
+
+Nota: desde a Fase 3, `priority` deixou de ficar None na criação — a IA de
+triagem preenche automaticamente quando não informado (ver
+test_phase3_ai_triage.py). O escopo deste teste é o CRUD em si, não mais a
+ausência de IA.
 """
 from fastapi.testclient import TestClient
 
@@ -49,7 +54,6 @@ def run():
         body = resp.json()
         created_ticket_id = body["id"]
         assert body["status"] == "open"
-        assert body["priority"] is None
         assert body["resolved_by_ai"] is False
         print(f"[OK] POST /tickets -> ticket criado {created_ticket_id}")
 

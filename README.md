@@ -12,7 +12,8 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 
 ✅ Fase 1 concluída e testada — modelo de dados + migrations
 ✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
-🚧 Próxima: Fase 3 (integração com IA de triagem)
+✅ Fase 3 concluída e testada — triagem por IA plugada na criação de chamados (modo mock por padrão; live com Anthropic quando `ANTHROPIC_API_KEY` estiver configurada)
+🚧 Próxima: Fase 4 (frontend)
 
 ---
 
@@ -37,7 +38,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 
 - [x] Fase 1 — Modelo de dados + migrations
 - [x] Fase 2 — Endpoints core de `tickets` (CRUD, sem IA)
-- [ ] Fase 3 — Integração com IA de triagem
+- [x] Fase 3 — Integração com IA de triagem
 - [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
 - [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
@@ -53,6 +54,11 @@ cd SistemaITSM
 
 # crie um .env na raiz com:
 # DATABASE_URL=postgresql://<user>:<senha>@<host>.sa-east-1.aws.neon.tech/neondb?sslmode=require
+#
+# opcional — só necessário pro modo live da triagem por IA (Fase 3):
+# ANTHROPIC_API_KEY=
+# LLM_MODEL=claude-haiku-4-5
+# Sem ANTHROPIC_API_KEY, a triagem roda em modo mock (heurística local, sem custo de API).
 
 cd backend
 python -m venv .venv
@@ -71,17 +77,28 @@ python -m uvicorn app.main:app --reload
 
 # roda o teste da Fase 2 (CRUD de tickets via API real, depois limpa)
 python test_phase2_tickets_api.py
+
+# roda o teste da Fase 3 (triagem por IA via API real, modo mock por padrão, depois limpa)
+python test_phase3_ai_triage.py
 ```
 
-### Endpoints disponíveis (Fase 2)
+### Endpoints disponíveis
 
 ```
 GET    /health
-POST   /tickets                     → cria chamado (status=open, sem triagem por IA ainda)
+POST   /tickets                     → cria chamado (triagem por IA roda automaticamente)
 GET    /tickets                     → lista (filtros: status, priority, assignee_id)
 GET    /tickets/{id}                → detalhe + histórico de interações
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id
 ```
+
+### Triagem por IA (Fase 3)
+
+- Ao criar um chamado (`POST /tickets`), o título + descrição são enviados ao serviço de triagem, que sugere `priority` (severidade) e `category_id` (casando com as categorias já cadastradas — se nenhuma bater, fica nulo, sem criar categoria nova).
+- A sugestão é sempre salva em `ai_suggested_priority` / `ai_suggested_category_id`, separada do valor final (`priority` / `category_id`) — isso é o que permite medir o acerto da IA depois (design-itsm-mvp.md §5).
+- Se `priority`/`category_id` não forem informados na criação, o valor sugerido pela IA vira o valor inicial do chamado (editável depois via `PATCH`). Se forem informados explicitamente, prevalecem — mas a sugestão da IA continua registrada.
+- **Modo mock** (padrão, sem `ANTHROPIC_API_KEY`): heurística local por palavras-chave (`app/services/triage_mock.py`) — não chama API externa, usada nos testes automatizados.
+- **Modo live** (com `ANTHROPIC_API_KEY` configurada): chama a Anthropic (Claude), reaproveitando o padrão de prompt/parse/retry/fallback validado no [AIOps Copilot](https://github.com/natanmcardoso).
 
 ---
 

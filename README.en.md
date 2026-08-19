@@ -12,7 +12,8 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 
 ✅ Phase 1 completed and tested — data model + migrations
 ✅ Phase 2 completed and tested — core `tickets` endpoints (CRUD, no AI)
-🚧 Next: Phase 3 (AI triage integration)
+✅ Phase 3 completed and tested — AI triage wired into ticket creation (mock mode by default; live mode with Anthropic when `ANTHROPIC_API_KEY` is set)
+🚧 Next: Phase 4 (frontend)
 
 ---
 
@@ -37,7 +38,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 
 - [x] Phase 1 — Data model + migrations
 - [x] Phase 2 — Core `tickets` endpoints (CRUD, no AI yet)
-- [ ] Phase 3 — AI triage integration
+- [x] Phase 3 — AI triage integration
 - [ ] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
 - [ ] Phase 5 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
@@ -53,6 +54,11 @@ cd SistemaITSM
 
 # create a .env in the project root with:
 # DATABASE_URL=postgresql://<user>:<password>@<host>.sa-east-1.aws.neon.tech/neondb?sslmode=require
+#
+# optional — only needed for the AI triage live mode (Phase 3):
+# ANTHROPIC_API_KEY=
+# LLM_MODEL=claude-haiku-4-5
+# Without ANTHROPIC_API_KEY, triage runs in mock mode (local heuristic, no API cost).
 
 cd backend
 python -m venv .venv
@@ -71,17 +77,28 @@ python -m uvicorn app.main:app --reload
 
 # runs the Phase 2 test (ticket CRUD via the real API, then cleans up)
 python test_phase2_tickets_api.py
+
+# runs the Phase 3 test (AI triage via the real API, mock mode by default, then cleans up)
+python test_phase3_ai_triage.py
 ```
 
-### Available endpoints (Phase 2)
+### Available endpoints
 
 ```
 GET    /health
-POST   /tickets                     → creates a ticket (status=open, no AI triage yet)
+POST   /tickets                     → creates a ticket (AI triage runs automatically)
 GET    /tickets                     → list (filters: status, priority, assignee_id)
 GET    /tickets/{id}                → detail + interaction history
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id
 ```
+
+### AI triage (Phase 3)
+
+- On ticket creation (`POST /tickets`), the title + description are sent to the triage service, which suggests `priority` (severity) and `category_id` (matched against already-registered categories — if none match, it stays null instead of creating a new category).
+- The suggestion is always saved to `ai_suggested_priority` / `ai_suggested_category_id`, kept separate from the final value (`priority` / `category_id`) — that's what makes it possible to measure AI accuracy later (design-itsm-mvp.md §5).
+- If `priority`/`category_id` aren't provided at creation time, the AI's suggestion becomes the ticket's initial value (editable later via `PATCH`). If they are provided explicitly, they take precedence — but the AI suggestion is still recorded.
+- **Mock mode** (default, without `ANTHROPIC_API_KEY`): local keyword heuristic (`app/services/triage_mock.py`) — no external API call, used by the automated tests.
+- **Live mode** (with `ANTHROPIC_API_KEY` set): calls Anthropic (Claude), reusing the prompt/parse/retry/fallback pattern validated in [AIOps Copilot](https://github.com/natanmcardoso).
 
 ---
 

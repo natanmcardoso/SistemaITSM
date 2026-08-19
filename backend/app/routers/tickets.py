@@ -1,7 +1,6 @@
-"""Endpoints core de tickets — CRUD (Fase 2, sem IA ainda).
+"""Endpoints core de tickets — CRUD (Fase 2) + triagem por IA (Fase 3).
 
-Triagem por IA (ai_suggested_priority / ai_suggested_category_id) e autenticação
-serão plugadas em fases futuras (ver CLAUDE.md — Ordem de execução).
+Autenticação será plugada em fase futura (ver CLAUDE.md — Ordem de execução).
 """
 import uuid
 from typing import Optional
@@ -13,19 +12,27 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.models import Ticket
 from app.schemas import TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
+from app.services.triage import triage_ticket
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
 @router.post("", response_model=TicketOut, status_code=201)
 def create_ticket(payload: TicketCreate, db: Session = Depends(get_db)):
+    # Sugestão da IA é sempre calculada e preservada em ai_suggested_* (métricas
+    # de acerto — design-itsm-mvp.md §5). Se o chamador não informou priority/
+    # category_id explicitamente, a sugestão vira o valor inicial do chamado.
+    triage = triage_ticket(payload.title, payload.description, db)
+
     ticket = Ticket(
         title=payload.title,
         description=payload.description,
         requester_id=payload.requester_id,
-        category_id=payload.category_id,
-        priority=payload.priority,
+        category_id=payload.category_id if payload.category_id is not None else triage.category_id,
+        priority=payload.priority if payload.priority is not None else triage.priority,
         assignee_id=payload.assignee_id,
+        ai_suggested_priority=triage.priority,
+        ai_suggested_category_id=triage.category_id,
         status="open",
     )
     db.add(ticket)
