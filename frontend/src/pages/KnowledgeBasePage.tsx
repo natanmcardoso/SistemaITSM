@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ApiError, listKbArticles } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { Sidebar } from "../components/Sidebar";
-import { IconBook, IconSearch, IconTicket } from "../components/icons";
+import { technicianNavItems } from "../components/technicianNavItems";
+import { IconSearch } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { KBArticleOut } from "../types";
 
@@ -35,15 +36,7 @@ export function KnowledgeBasePage() {
     <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
       <Sidebar
         groupLabel="Chamados"
-        navItems={[
-          { label: "Fila de chamados", icon: <IconTicket width={18} height={18} />, href: "/fila" },
-          {
-            label: "Base de conhecimento",
-            icon: <IconBook width={18} height={18} />,
-            href: "/base-conhecimento",
-            active: true,
-          },
-        ]}
+        navItems={technicianNavItems("/base-conhecimento")}
         userName={auth.user.name}
         userRoleLabel="Técnico(a)"
         onSignOut={() => {

@@ -145,3 +145,31 @@ export function IconFlag(props: SVGProps<SVGSVGElement>) {
     </Icon>
   );
 }
+
+export function IconUsers(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.8 20c.7-3.4 3.3-5.5 6.2-5.5s5.5 2.1 6.2 5.5" />
+      <path d="M15.5 4.7a3.2 3.2 0 0 1 0 6.2" />
+      <path d="M18 14.7c2 .6 3.5 2.3 4 5.3" />
+    </Icon>
+  );
+}
+
+export function IconEdit(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </Icon>
+  );
+}
+
+export function IconPlus(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}

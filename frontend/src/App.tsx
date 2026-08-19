@@ -5,6 +5,7 @@ import { homeRouteForRole } from "./auth/routing";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 import { LoginPage } from "./pages/LoginPage";
+import { MeusAtendimentosPage } from "./pages/MeusAtendimentosPage";
 import { MeusChamadosPage } from "./pages/MeusChamadosPage";
 import { NewTicketPage } from "./pages/NewTicketPage";
 import { QueuePage } from "./pages/QueuePage";
@@ -30,6 +31,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <QueuePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/meus-atendimentos"
+        element={
+          <RequireAuth>
+            <MeusAtendimentosPage />
           </RequireAuth>
         }
       />

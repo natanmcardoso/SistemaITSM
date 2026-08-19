@@ -12,7 +12,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, aliased, selectinload
 
 from app.database import get_db
 from app.models import TICKET_STATUSES, Interaction, Ticket, User
@@ -106,6 +106,10 @@ def list_tickets(
     # query segue o mesmo padrão de busca substring case-insensitive usado em
     # kb-articles?query=; sla=breached alimenta o link "SLA estourado" do
     # dashboard.
+    # Fase 8.3: query também casa pelo nome do solicitante ou do técnico
+    # atribuído (join com users, aliased duas vezes — cada chamado tem no
+    # máximo um solicitante e um atribuído, então o outerjoin não duplica
+    # linha nenhuma).
     q = db.query(Ticket)
     if status is not None:
         q = q.filter(Ticket.status == status)
@@ -119,7 +123,20 @@ def list_tickets(
         q = q.filter(Ticket.requester_id == requester_id)
     if query:
         term = f"%{query}%"
-        q = q.filter(or_(Ticket.title.ilike(term), Ticket.description.ilike(term)))
+        Requester = aliased(User)
+        Assignee = aliased(User)
+        q = (
+            q.outerjoin(Requester, Ticket.requester_id == Requester.id)
+            .outerjoin(Assignee, Ticket.assignee_id == Assignee.id)
+            .filter(
+                or_(
+                    Ticket.title.ilike(term),
+                    Ticket.description.ilike(term),
+                    Requester.name.ilike(term),
+                    Assignee.name.ilike(term),
+                )
+            )
+        )
     if sla == "breached":
         q = q.filter(
             Ticket.sla_due_at.isnot(None),
