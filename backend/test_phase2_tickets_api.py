@@ -10,12 +10,18 @@ Nota: desde a Fase 3, `priority` deixou de ficar None na criação — a IA de
 triagem preenche automaticamente quando não informado (ver
 test_phase3_ai_triage.py). O escopo deste teste é o CRUD em si, não mais a
 ausência de IA.
+
+Nota 2: desde a Fase 4 (tela 3/3), os endpoints de /tickets exigem token
+(qualquer usuário autenticado) — o token é gerado direto via
+create_access_token, sem passar por /auth/login (o requester de teste tem
+password_hash fake, não uma senha real).
 """
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
 from app.models import Category, Ticket, User
+from app.security import create_access_token
 
 client = TestClient(app)
 
@@ -38,6 +44,8 @@ def run():
     db.refresh(category)
     print(f"[setup] requester={requester.id} technician={technician.id} category={category.id}")
 
+    auth_headers = {"Authorization": f"Bearer {create_access_token(technician)}"}
+
     created_ticket_id = None
     try:
         # --- GET /health ---
@@ -45,6 +53,18 @@ def run():
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}
         print("[OK] GET /health")
+
+        # --- POST /tickets sem token -> 401 ---
+        resp = client.post(
+            "/tickets",
+            json={
+                "title": "x",
+                "description": "y",
+                "requester_id": str(requester.id),
+            },
+        )
+        assert resp.status_code == 401, resp.text
+        print("[OK] POST /tickets sem token -> 401")
 
         # --- POST /tickets ---
         resp = client.post(
@@ -55,6 +75,7 @@ def run():
                 "requester_id": str(requester.id),
                 "category_id": str(category.id),
             },
+            headers=auth_headers,
         )
         assert resp.status_code == 201, resp.text
         body = resp.json()
@@ -71,19 +92,20 @@ def run():
                 "description": "y",
                 "requester_id": "00000000-0000-0000-0000-000000000000",
             },
+            headers=auth_headers,
         )
         assert resp.status_code == 400, resp.text
         print("[OK] POST /tickets com requester_id inválido -> 400")
 
         # --- GET /tickets (lista) ---
-        resp = client.get("/tickets", params={"status": "open"})
+        resp = client.get("/tickets", params={"status": "open"}, headers=auth_headers)
         assert resp.status_code == 200
         ids = [t["id"] for t in resp.json()]
         assert created_ticket_id in ids
         print(f"[OK] GET /tickets?status=open -> {len(ids)} ticket(s), inclui o criado")
 
         # --- GET /tickets/{id} (detalhe) ---
-        resp = client.get(f"/tickets/{created_ticket_id}")
+        resp = client.get(f"/tickets/{created_ticket_id}", headers=auth_headers)
         assert resp.status_code == 200
         detail = resp.json()
         assert detail["title"] == "Notebook não liga"
@@ -91,7 +113,7 @@ def run():
         print("[OK] GET /tickets/{id} -> detalhe com interactions=[]")
 
         # --- GET /tickets/{id} inexistente -> 404 ---
-        resp = client.get("/tickets/00000000-0000-0000-0000-000000000000")
+        resp = client.get("/tickets/00000000-0000-0000-0000-000000000000", headers=auth_headers)
         assert resp.status_code == 404
         print("[OK] GET /tickets/{id} inexistente -> 404")
 
@@ -99,6 +121,7 @@ def run():
         resp = client.patch(
             f"/tickets/{created_ticket_id}",
             json={"status": "in_progress", "priority": "high", "assignee_id": str(technician.id)},
+            headers=auth_headers,
         )
         assert resp.status_code == 200, resp.text
         updated = resp.json()
@@ -108,7 +131,7 @@ def run():
         print("[OK] PATCH /tickets/{id} -> status/priority/assignee atualizados")
 
         # --- GET /tickets com filtro por assignee_id reflete o PATCH ---
-        resp = client.get("/tickets", params={"assignee_id": str(technician.id)})
+        resp = client.get("/tickets", params={"assignee_id": str(technician.id)}, headers=auth_headers)
         assert resp.status_code == 200
         assert any(t["id"] == created_ticket_id for t in resp.json())
         print("[OK] GET /tickets?assignee_id=... reflete a atualização")

@@ -1,4 +1,4 @@
-import type { TicketCreate, TicketOut, TokenResponse } from "./types";
+import type { DashboardSummary, TicketCreate, TicketOut, TokenResponse } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -44,6 +44,10 @@ export function listTickets(
 
 export function createTicket(token: string, payload: TicketCreate): Promise<TicketOut> {
   return request<TicketOut>("/tickets", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function getDashboardSummary(token: string): Promise<DashboardSummary> {
+  return request<DashboardSummary>("/dashboard/summary", { method: "GET" }, token);
 }
 
 export { ApiError };

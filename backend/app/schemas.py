@@ -79,3 +79,35 @@ class TicketOut(BaseModel):
 
 class TicketDetailOut(TicketOut):
     interactions: list[InteractionOut] = []
+
+
+class CategoryCount(BaseModel):
+    name: str
+    count: int
+
+
+class AIAccuracyMetric(BaseModel):
+    """Sugerida vs. valor final — mede o acerto da IA (design-itsm-mvp.md §5).
+
+    Só considera chamados em que a IA de fato sugeriu algo (suggested_total);
+    matched = técnico manteve a sugestão, changed = reclassificou.
+    """
+
+    suggested_total: int
+    matched: int
+    changed: int
+
+
+class DashboardSummary(BaseModel):
+    """Fase 4, tela 3/3 — só métricas com dado real no banco hoje.
+
+    SLA estourado e % resolvido por IA ficam de fora: `sla_due_at` nunca é
+    calculado (sla_rules não é usada) e `resolved_by_ai` nunca é setado (não
+    existe endpoint resolve-by-user) — ver CLAUDE.md.
+    """
+
+    total_tickets: int
+    by_status: dict[str, int]
+    top_categories: list[CategoryCount]
+    ai_accuracy_priority: AIAccuracyMetric
+    ai_accuracy_category: AIAccuracyMetric

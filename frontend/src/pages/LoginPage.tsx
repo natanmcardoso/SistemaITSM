@@ -59,6 +59,13 @@ export function LoginPage() {
               </option>
             ))}
           </optgroup>
+          <optgroup label="Gestores">
+            {LOGIN_ACCOUNTS.filter((a) => a.role === "manager").map((account) => (
+              <option key={account.email} value={account.email}>
+                {account.name}
+              </option>
+            ))}
+          </optgroup>
         </select>
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

@@ -1,6 +1,9 @@
 """Endpoints core de tickets — CRUD (Fase 2) + triagem por IA (Fase 3).
 
-Autenticação será plugada em fase futura (ver CLAUDE.md — Ordem de execução).
+Guard de autenticação plugado na Fase 4 (tela 3/3, junto com o dashboard do
+gestor) — qualquer usuário logado (end_user/technician/manager) pode chamar
+estes endpoints, sem restrição por role: usuário final cria os próprios
+chamados, técnico gerencia a fila.
 """
 import uuid
 from typing import Optional
@@ -12,9 +15,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.models import Ticket
 from app.schemas import TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
+from app.security import get_current_user
 from app.services.triage import triage_ticket
 
-router = APIRouter(prefix="/tickets", tags=["tickets"])
+router = APIRouter(prefix="/tickets", tags=["tickets"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("", response_model=TicketOut, status_code=201)

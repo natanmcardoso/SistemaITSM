@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { homeRouteForRole } from "./auth/routing";
+import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NewTicketPage } from "./pages/NewTicketPage";
 import { QueuePage } from "./pages/QueuePage";
@@ -34,6 +35,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <NewTicketPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <RequireAuth>
+            <DashboardPage />
           </RequireAuth>
         }
       />

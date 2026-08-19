@@ -8,12 +8,17 @@ completa: chamado novo -> triagem -> ai_suggested_priority/category_id
 preenchidos -> priority/category_id herdam a sugestão quando não informados
 explicitamente -> valor explícito do chamador prevalece quando informado,
 mas a sugestão da IA continua preservada separada (design-itsm-mvp.md §5).
+
+Nota: desde a Fase 4 (tela 3/3), POST /tickets exige token (qualquer usuário
+autenticado) — gerado direto via create_access_token, sem passar por
+/auth/login (password_hash de teste é fake).
 """
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
 from app.models import Category, Ticket, User
+from app.security import create_access_token
 
 client = TestClient(app)
 
@@ -33,6 +38,8 @@ def run():
     db.refresh(cat_acesso)
     print(f"[setup] requester={requester.id} categorias=Hardware/{cat_hardware.id}, Acesso/{cat_acesso.id}")
 
+    auth_headers = {"Authorization": f"Bearer {create_access_token(requester)}"}
+
     created_ids = []
     try:
         # --- categoria existente é reconhecida (Hardware) + severidade alta ---
@@ -43,6 +50,7 @@ def run():
                 "description": "Notebook do financeiro não liga desde ontem, tela azul antes de desligar.",
                 "requester_id": str(requester.id),
             },
+            headers=auth_headers,
         )
         assert resp.status_code == 201, resp.text
         body = resp.json()
@@ -62,6 +70,7 @@ def run():
                 "description": "Minha senha está bloqueada e não consigo acessar o sistema.",
                 "requester_id": str(requester.id),
             },
+            headers=auth_headers,
         )
         assert resp.status_code == 201, resp.text
         body = resp.json()
@@ -80,6 +89,7 @@ def run():
                 "description": "Sistema de produção está fora do ar, urgente.",
                 "requester_id": str(requester.id),
             },
+            headers=auth_headers,
         )
         assert resp.status_code == 201, resp.text
         body = resp.json()
@@ -100,6 +110,7 @@ def run():
                 "priority": "low",
                 "category_id": str(cat_acesso.id),
             },
+            headers=auth_headers,
         )
         assert resp.status_code == 201, resp.text
         body = resp.json()

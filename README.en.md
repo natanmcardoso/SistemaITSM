@@ -14,8 +14,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 2 completed and tested — core `tickets` endpoints (CRUD, no AI)
 ✅ Phase 3 completed and tested — AI triage wired into ticket creation (mock mode by default; live mode with Anthropic when `ANTHROPIC_API_KEY` is set)
 ✅ Phase 4.0 completed and tested — authentication (login + JWT), a prerequisite for Phase 4 (frontend)
-🚧 Phase 4 (frontend) in progress — screen 2/3 completed and tested: new ticket (end-user flow, creates an AI-triaged ticket)
-🚧 Next: manager dashboard
+✅ Phase 4 (frontend) completed and tested — technician queue, new ticket, and manager dashboard
 
 ---
 
@@ -42,10 +41,10 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 - [x] Phase 2 — Core `tickets` endpoints (CRUD, no AI yet)
 - [x] Phase 3 — AI triage integration
 - [x] Phase 4.0 — Authentication (login + JWT)
-- [ ] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
+- [x] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
   - [x] Technician queue
   - [x] New ticket
-  - [ ] Manager dashboard
+  - [x] Manager dashboard
 - [ ] Phase 5 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -94,6 +93,10 @@ python test_phase3_ai_triage.py
 # runs the Phase 4.0 test (login + JWT via the real API, then cleans up)
 python test_phase4_0_auth.py
 
+# runs the manager dashboard + /tickets auth guard test (Phase 4, screen
+# 3/3), via the real API, then cleans up
+python test_phase4_dashboard.py
+
 # seeds the database with persistent dev data (technicians, categories, sample
 # tickets) — needed so the technician queue screen has something to show.
 # Idempotent, safe to re-run. Password for every seeded account: demo1234
@@ -110,10 +113,11 @@ npm install
 cp .env.example .env
 
 npm run dev
-# http://localhost:5173/login — pick an account (technician or end user;
-# password demo1234 is filled in automatically)
+# http://localhost:5173/login — pick an account (technician, end user, or
+# manager; password demo1234 is filled in automatically)
 # - technician lands on the queue (seeded tickets)
 # - end user lands directly on the new ticket screen
+# - manager lands directly on the dashboard
 ```
 
 > No `GET /users`/`GET /categories` endpoint in this phase (design decision) —
@@ -127,10 +131,11 @@ npm run dev
 GET    /health
 POST   /auth/login                  → login (email + password) → JWT
 GET    /auth/me                     → authenticated user's data (requires Bearer token)
-POST   /tickets                     → creates a ticket (AI triage runs automatically)
-GET    /tickets                     → list (filters: status, priority, assignee_id)
-GET    /tickets/{id}                → detail + interaction history
-PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id
+POST   /tickets                     → creates a ticket (AI triage runs automatically) — requires login
+GET    /tickets                     → list (filters: status, priority, assignee_id) — requires login
+GET    /tickets/{id}                → detail + interaction history — requires login
+PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
+GET    /dashboard/summary           → manager dashboard metrics — requires login with role=manager
 ```
 
 ### AI triage (Phase 3)
@@ -146,7 +151,7 @@ PATCH  /tickets/{id}                → updates status/priority/category_id/assi
 - Email/password login (`POST /auth/login`) returns a JWT (HS256, expires in 8h) plus the user's data (`id`, `name`, `email`, `role`).
 - Endpoints that require login use the `Authorization: Bearer <token>` header; `GET /auth/me` is the reference endpoint for validating a token.
 - **There's no public user signup in this phase** — accounts are created directly in the database (password hashed with bcrypt via `app.security.hash_password`). A signup endpoint is left for a future phase, if needed.
-- The `tickets` endpoints don't require authentication yet — that's wired in together with Phase 4 (frontend), once the technician queue starts calling the API with the login token.
+- The `tickets` endpoints have required authentication since Phase 4, screen 3/3 (any logged-in user, no role restriction) — `GET /dashboard/summary` goes further and restricts to `role=manager` via `require_role`.
 
 ### Technician queue (Phase 4, screen 1/3)
 
@@ -160,6 +165,13 @@ PATCH  /tickets/{id}                → updates status/priority/category_id/assi
 - End-user flow (design-itsm-mvp.md §2.1): a form with title + description, `POST /tickets` sends the logged-in user's `requester_id` and triggers AI triage automatically.
 - The confirmation screen shows the category and priority the AI suggested at creation time — the KB article suggestion + "resolved/not resolved" step is left for a future phase, since the `kb_articles` and `resolve-by-user` endpoints don't exist in the backend yet.
 - Login extended: the same account picker used on the queue screen now also lists the seeded end users (João Pereira, Marina Alves); the post-login destination is decided by `role` (`end_user` → `/novo-chamado`, `technician` → `/fila`).
+
+### Manager dashboard (Phase 4, screen 3/3)
+
+- `GET /dashboard/summary` (restricted to `role=manager`) returns ticket volume by status, top categories, and the AI's triage accuracy — suggested vs. final value of `priority`/`category_id` (design-itsm-mvp.md §5), counting only tickets where the AI actually suggested something.
+- **Left out of the dashboard by explicit decision:** SLA breaches and the % of tickets resolved without human intervention — two of the design doc's four headline metrics (§2.3) — because `sla_due_at` is never calculated (the `sla_rules` table isn't used anywhere in the code) and `resolved_by_ai` is never set (the `resolve-by-user` endpoint doesn't exist). Showing those metrics would require building those flows first — the decision was to keep the dashboard limited to real data for now.
+- Auth guard wired into `/tickets` as part of this screen (a Phase 4.0 debt that was still open): any logged-in user can call it, no role restriction.
+- Login extended again: the picker now also lists Beatriz Lima (manager); logging in as manager lands directly on `/dashboard`.
 
 ---
 

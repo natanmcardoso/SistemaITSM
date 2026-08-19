@@ -9,19 +9,19 @@
 export interface LoginAccount {
   name: string;
   email: string;
-  role: "technician" | "end_user";
+  role: "technician" | "end_user" | "manager";
 }
 
 // Senha é a mesma para todas as contas semeadas (ver seed_dev_data.py).
 export const DEMO_PASSWORD = "demo1234";
 
-// Contas selecionáveis na tela de login. Fica de fora a persona "manager"
-// (Beatriz Lima) — ainda não existe tela de gestor para ela acessar.
+// Contas selecionáveis na tela de login.
 export const LOGIN_ACCOUNTS: LoginAccount[] = [
   { name: "Carla Mendes", email: "carla.mendes@itsm.dev", role: "technician" },
   { name: "Rafael Souza", email: "rafael.souza@itsm.dev", role: "technician" },
   { name: "João Pereira", email: "joao.pereira@itsm.dev", role: "end_user" },
   { name: "Marina Alves", email: "marina.alves@itsm.dev", role: "end_user" },
+  { name: "Beatriz Lima", email: "beatriz.lima@itsm.dev", role: "manager" },
 ];
 
 export const CATEGORY_NAMES: Record<string, string> = {

@@ -14,8 +14,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
 ✅ Fase 3 concluída e testada — triagem por IA plugada na criação de chamados (modo mock por padrão; live com Anthropic quando `ANTHROPIC_API_KEY` estiver configurada)
 ✅ Fase 4.0 concluída e testada — autenticação (login + JWT), pré-requisito da Fase 4 (frontend)
-🚧 Fase 4 (frontend) em andamento — tela 2/3 concluída e testada: novo chamado (fluxo do usuário final, cria chamado já triado pela IA)
-🚧 Próxima: dashboard do gestor
+✅ Fase 4 (frontend) concluída e testada — fila do técnico, novo chamado e dashboard do gestor
 
 ---
 
@@ -42,10 +41,10 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 - [x] Fase 2 — Endpoints core de `tickets` (CRUD, sem IA)
 - [x] Fase 3 — Integração com IA de triagem
 - [x] Fase 4.0 — Autenticação (login + JWT)
-- [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
+- [x] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
   - [x] Fila do técnico
   - [x] Novo chamado
-  - [ ] Dashboard do gestor
+  - [x] Dashboard do gestor
 - [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -94,6 +93,10 @@ python test_phase3_ai_triage.py
 # roda o teste da Fase 4.0 (login + JWT via API real, depois limpa)
 python test_phase4_0_auth.py
 
+# roda o teste do dashboard do gestor + guard de autenticação em /tickets
+# (Fase 4, tela 3/3), via API real, depois limpa
+python test_phase4_dashboard.py
+
 # popula o banco com dados de dev persistentes (técnicos, categorias, chamados
 # de exemplo) — necessário pra tela de fila do técnico ter o que mostrar.
 # Idempotente, pode rodar de novo sem duplicar. Senha de todas as contas: demo1234
@@ -110,10 +113,11 @@ npm install
 cp .env.example .env
 
 npm run dev
-# http://localhost:5173/login — escolha uma conta (técnico ou usuário final;
-# senha demo1234 preenchida automaticamente)
+# http://localhost:5173/login — escolha uma conta (técnico, usuário final ou
+# gestor; senha demo1234 preenchida automaticamente)
 # - técnico cai na fila (chamados semeados)
 # - usuário final cai direto na tela de novo chamado
+# - gestor cai direto no dashboard
 ```
 
 > Sem endpoint `GET /users`/`GET /categories` nesta fase (decisão do design) — os
@@ -127,10 +131,11 @@ npm run dev
 GET    /health
 POST   /auth/login                  → login (email + senha) → JWT
 GET    /auth/me                     → dados do usuário autenticado (requer Bearer token)
-POST   /tickets                     → cria chamado (triagem por IA roda automaticamente)
-GET    /tickets                     → lista (filtros: status, priority, assignee_id)
-GET    /tickets/{id}                → detalhe + histórico de interações
-PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id
+POST   /tickets                     → cria chamado (triagem por IA roda automaticamente) — requer login
+GET    /tickets                     → lista (filtros: status, priority, assignee_id) — requer login
+GET    /tickets/{id}                → detalhe + histórico de interações — requer login
+PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
+GET    /dashboard/summary           → métricas do dashboard do gestor — requer login com role=manager
 ```
 
 ### Triagem por IA (Fase 3)
@@ -146,7 +151,7 @@ PATCH  /tickets/{id}                → atualiza status/priority/category_id/ass
 - Login por email/senha (`POST /auth/login`) retorna um JWT (HS256, expira em 8h) e os dados do usuário (`id`, `name`, `email`, `role`).
 - Endpoints que exigem login usam o header `Authorization: Bearer <token>`; `GET /auth/me` é o endpoint de referência para validar o token.
 - **Não há cadastro público de usuário nesta fase** — contas são criadas direto no banco (senha com hash bcrypt via `app.security.hash_password`). Um endpoint de cadastro fica para uma fase futura, se necessário.
-- Os endpoints de `tickets` ainda não exigem autenticação — isso é plugado junto com a Fase 4 (frontend), quando a fila do técnico passa a chamar a API com o token do login.
+- Os endpoints de `tickets` exigem autenticação desde a Fase 4, tela 3/3 (qualquer usuário logado, sem restrição de role) — `GET /dashboard/summary` vai além e restringe a `role=manager` via `require_role`.
 
 ### Fila do técnico (Fase 4, tela 1/3)
 
@@ -160,6 +165,13 @@ PATCH  /tickets/{id}                → atualiza status/priority/category_id/ass
 - Fluxo do usuário final (design-itsm-mvp.md §2.1): formulário com título + descrição, `POST /tickets` envia `requester_id` do usuário logado e dispara a triagem por IA automaticamente.
 - Tela de confirmação mostra a categoria e a prioridade que a IA sugeriu na criação — a etapa de sugestão de artigo da KB + "resolveu/não resolveu" fica para uma fase futura, já que os endpoints de `kb_articles` e `resolve-by-user` ainda não existem no backend.
 - Login estendido: o mesmo seletor de contas da tela de fila agora também lista os usuários finais semeados (João Pereira, Marina Alves); o destino pós-login é decidido pela `role` (`end_user` → `/novo-chamado`, `technician` → `/fila`).
+
+### Dashboard do gestor (Fase 4, tela 3/3)
+
+- `GET /dashboard/summary` (restrito a `role=manager`) devolve volume de chamados por status, top categorias e o acerto da IA na triagem — sugestão vs. valor final de `priority`/`category_id` (design-itsm-mvp.md §5), só contando chamados em que a IA de fato sugeriu algo.
+- **Fora do dashboard por decisão explícita:** SLA estourado e % de chamados resolvidos sem intervenção humana — duas das quatro métricas centrais do design doc (§2.3) — porque `sla_due_at` nunca é calculado (a tabela `sla_rules` não é usada em código nenhum) e `resolved_by_ai` nunca é setado (o endpoint `resolve-by-user` não existe). Mostrar essas métricas exigiria implementar esses fluxos primeiro — decidiu-se manter o dashboard só com dado real por ora.
+- Guard de autenticação plugado em `/tickets` nesta tela (dívida da Fase 4.0 que ainda estava aberta): qualquer usuário logado pode chamar, sem restrição de role.
+- Login estendido de novo: o seletor agora também lista Beatriz Lima (manager); login como gestor cai direto em `/dashboard`.
 
 ---
 
