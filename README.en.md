@@ -15,6 +15,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 3 completed and tested — AI triage wired into ticket creation (mock mode by default; live mode with Anthropic when `ANTHROPIC_API_KEY` is set)
 ✅ Phase 4.0 completed and tested — authentication (login + JWT), a prerequisite for Phase 4 (frontend)
 ✅ Phase 4 (frontend) completed and tested — technician queue, new ticket, and manager dashboard, including the SLA and resolve-by-user sub-phases: all 4 headline metrics from the design doc (§2.3) now have real data
+✅ Custom visual identity applied across all 4 screens — blue sidebar, Plus Jakarta Sans typeface, priority/status badges (design process documented in `CLAUDE.md`)
 
 ---
 

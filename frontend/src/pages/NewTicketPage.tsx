@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ApiError, createTicket, getKbArticlesByCategory, resolveByUser } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
+import { IconCheck, IconLogout, IconSparkle, IconTicket } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { KBArticleOut, TicketOut } from "../types";
 
@@ -92,11 +93,16 @@ export function NewTicketPage() {
   const resolved = created && created.resolved_by_ai;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-8">
+    <div className="min-h-screen bg-slate-50 px-8 py-7">
       <div className="mx-auto max-w-xl">
-        <header className="mb-8 flex items-center justify-between">
+        <header className="mb-7 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Novo chamado</h1>
+            <div className="mb-1 flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary">
+                <IconTicket width={15} height={15} strokeWidth={2} className="text-white" />
+              </div>
+              <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">Novo chamado</h1>
+            </div>
             <p className="text-sm text-slate-500">Logado como {auth.user.name}</p>
           </div>
           <button
@@ -104,8 +110,9 @@ export function NewTicketPage() {
               signOut();
               navigate("/login");
             }}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-white"
+            className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
           >
+            <IconLogout width={14} height={14} />
             Sair
           </button>
         </header>
@@ -113,9 +120,9 @@ export function NewTicketPage() {
         {!created ? (
           <form
             onSubmit={handleSubmit}
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]"
           >
-            <label className="block text-sm font-medium text-slate-700" htmlFor="title">
+            <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="title">
               Título
             </label>
             <input
@@ -125,10 +132,10 @@ export function NewTicketPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Resumo curto do problema"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="mb-4.5 w-full rounded-[10px] border-[1.5px] border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
             />
 
-            <label className="mt-4 block text-sm font-medium text-slate-700" htmlFor="description">
+            <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="description">
               Descrição
             </label>
             <textarea
@@ -138,67 +145,81 @@ export function NewTicketPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva o problema com o máximo de detalhes possível"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="mb-6 w-full resize-none rounded-[10px] border-[1.5px] border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
             />
 
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
             <button
               type="submit"
               disabled={submitting}
-              className="mt-6 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60"
+              className="w-full rounded-[10px] bg-primary py-3 text-sm font-bold text-white shadow-[0_1px_2px_rgba(29,79,216,.16)] transition hover:bg-primary-dark disabled:opacity-60"
             >
               {submitting ? "Enviando..." : "Abrir chamado"}
             </button>
           </form>
         ) : resolved ? (
-          <div className="rounded-xl border border-emerald-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-emerald-700">Chamado resolvido — obrigado!</p>
-            <h2 className="mt-3 text-lg font-semibold text-slate-900">{created.title}</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+            <p className="text-sm font-bold text-low">Chamado resolvido — obrigado!</p>
+            <h2 className="mt-3 text-lg font-extrabold text-slate-900">{created.title}</h2>
             <p className="mt-3 text-sm text-slate-600">
               Como o artigo sugerido resolveu o seu problema, o chamado foi fechado sem precisar de um
               técnico. Isso ajuda o time a focar nos casos que realmente precisam de atendimento.
             </p>
             <button
               onClick={handleNewTicket}
-              className="mt-6 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+              className="mt-6 w-full rounded-[10px] bg-primary py-3 text-sm font-bold text-white transition hover:bg-primary-dark"
             >
               Abrir outro chamado
             </button>
           </div>
         ) : kbArticle === undefined && created.status === "open" ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
             <p className="text-sm text-slate-500">Verificando se há um artigo que resolva na hora...</p>
           </div>
         ) : showingSuggestion && kbArticle ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-emerald-700">Chamado aberto — talvez isto resolva agora:</p>
-            <h2 className="mt-3 text-lg font-semibold text-slate-900">{kbArticle.title}</h2>
-            <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{kbArticle.content}</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-low" />
+              <span className="text-[13px] font-bold text-low">Chamado aberto</span>
+            </div>
+            <h2 className="mb-5 text-lg font-extrabold tracking-tight text-slate-900">{created.title}</h2>
 
-            {resolveError && <p className="mt-3 text-sm text-red-600">{resolveError}</p>}
+            <div className="mb-5.5 rounded-2xl border border-[#C7D7FB] bg-primary-tint p-5">
+              <div className="mb-3.5 inline-flex items-center gap-1.5 rounded-full bg-white py-1 pr-3 pl-2">
+                <IconSparkle width={13} height={13} className="text-primary" />
+                <span className="text-[11.5px] font-extrabold tracking-wide text-primary uppercase">
+                  Talvez isto resolva agora
+                </span>
+              </div>
+              <div className="mb-2.5 text-base font-extrabold text-slate-900">{kbArticle.title}</div>
+              <p className="text-[13.5px] leading-relaxed whitespace-pre-line text-slate-600">{kbArticle.content}</p>
+            </div>
 
-            <div className="mt-6 flex gap-3">
+            {resolveError && <p className="mb-3 text-sm text-red-600">{resolveError}</p>}
+
+            <div className="flex gap-3">
               <button
                 onClick={handleResolve}
                 disabled={resolving}
-                className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[10px] bg-low py-3 text-sm font-bold text-white shadow-[0_1px_2px_rgba(22,163,74,.18)] transition hover:bg-emerald-700 disabled:opacity-60"
               >
+                <IconCheck width={16} height={16} strokeWidth={2.3} />
                 {resolving ? "Marcando..." : "Resolveu, pode fechar"}
               </button>
               <button
                 onClick={() => setDeclinedSuggestion(true)}
                 disabled={resolving}
-                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                className="flex-1 rounded-[10px] border-[1.5px] border-slate-300 bg-white text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
               >
                 Não resolveu
               </button>
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-emerald-700">Chamado aberto com sucesso.</p>
-            <h2 className="mt-3 text-lg font-semibold text-slate-900">{created.title}</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+            <p className="text-sm font-bold text-low">Chamado aberto com sucesso.</p>
+            <h2 className="mt-3 text-lg font-extrabold text-slate-900">{created.title}</h2>
 
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex items-center gap-2">
@@ -224,7 +245,7 @@ export function NewTicketPage() {
 
             <button
               onClick={handleNewTicket}
-              className="mt-6 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+              className="mt-6 w-full rounded-[10px] bg-primary py-3 text-sm font-bold text-white transition hover:bg-primary-dark"
             >
               Abrir outro chamado
             </button>
