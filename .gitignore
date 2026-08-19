@@ -1,1 +1,18 @@
 .env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Node / frontend (fases futuras)
+node_modules/
+dist/
+build/
+
+# Editores/SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

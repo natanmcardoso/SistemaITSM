@@ -10,9 +10,8 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 
 ## Status atual
 
-🚧 Em desenvolvimento — Fase 1 (modelo de dados + migrations)
-
-Nenhuma fase foi concluída e testada ainda.
+✅ Fase 1 concluída e testada — modelo de dados + migrations
+🚧 Próxima: Fase 2 (endpoints core de `tickets`)
 
 ---
 
@@ -35,7 +34,7 @@ Nenhuma fase foi concluída e testada ainda.
 
 ## Roadmap
 
-- [ ] Fase 1 — Modelo de dados + migrations
+- [x] Fase 1 — Modelo de dados + migrations
 - [ ] Fase 2 — Endpoints core de `tickets` (CRUD, sem IA)
 - [ ] Fase 3 — Integração com IA de triagem
 - [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
@@ -50,7 +49,20 @@ Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-i
 ```bash
 git clone https://github.com/natanmcardoso/SistemaITSM.git
 cd SistemaITSM
-# instruções detalhadas de setup serão adicionadas conforme cada fase for concluída
+
+# crie um .env na raiz com:
+# DATABASE_URL=postgresql://<user>:<senha>@<host>.sa-east-1.aws.neon.tech/neondb?sslmode=require
+
+cd backend
+python -m venv .venv
+.venv/Scripts/activate          # Windows (use .venv/bin/activate no Linux/Mac)
+pip install -r requirements.txt
+
+# aplica o schema no banco (users, categories, tickets, interactions, kb_articles, sla_rules)
+python -m alembic upgrade head
+
+# roda o teste da Fase 1 (insere e consulta registros de teste, depois limpa)
+python test_phase1_data_model.py
 ```
 
 ---

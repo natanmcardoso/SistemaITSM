@@ -10,9 +10,8 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 
 ## Current status
 
-🚧 In development — Phase 1 (data model + migrations)
-
-No phase has been completed and tested yet.
+✅ Phase 1 completed and tested — data model + migrations
+🚧 Next: Phase 2 (core `tickets` endpoints)
 
 ---
 
@@ -35,7 +34,7 @@ No phase has been completed and tested yet.
 
 ## Roadmap
 
-- [ ] Phase 1 — Data model + migrations
+- [x] Phase 1 — Data model + migrations
 - [ ] Phase 2 — Core `tickets` endpoints (CRUD, no AI yet)
 - [ ] Phase 3 — AI triage integration
 - [ ] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
@@ -50,7 +49,20 @@ Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](
 ```bash
 git clone https://github.com/natanmcardoso/SistemaITSM.git
 cd SistemaITSM
-# detailed setup instructions will be added as each phase is completed
+
+# create a .env in the project root with:
+# DATABASE_URL=postgresql://<user>:<password>@<host>.sa-east-1.aws.neon.tech/neondb?sslmode=require
+
+cd backend
+python -m venv .venv
+.venv/Scripts/activate          # Windows (use .venv/bin/activate on Linux/Mac)
+pip install -r requirements.txt
+
+# applies the schema to the database (users, categories, tickets, interactions, kb_articles, sla_rules)
+python -m alembic upgrade head
+
+# runs the Phase 1 test (inserts and queries test records, then cleans up)
+python test_phase1_data_model.py
 ```
 
 ---
