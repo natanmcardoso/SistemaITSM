@@ -13,6 +13,8 @@ from app.models import Category, Interaction, KBArticle, SLARule, Ticket, User
 
 def run():
     db = SessionLocal()
+    requester_id = technician_id = category_id = None
+    sla_rule_id = kb_article_id = ticket_id = interaction_id = None
     try:
         # --- users ---
         requester = User(
@@ -25,20 +27,26 @@ def run():
         )
         db.add_all([requester, technician])
         db.flush()
+        requester_id, technician_id = requester.id, technician.id
         assert requester.id is not None
         assert requester.created_at is not None
         print(f"[OK] users: criado requester={requester.id} technician={technician.id}")
 
         # --- categories ---
-        category = Category(name="Rede", default_sla_hours=8)
+        # Nome com sufixo de teste para não colidir com a categoria "Rede" real
+        # que o seed_dev_data.py deixa persistida no banco (a limpeza deste
+        # teste já colidiu com isso antes — ver CLAUDE.md).
+        category = Category(name="Rede (teste fase 1)", default_sla_hours=8)
         db.add(category)
         db.flush()
+        category_id = category.id
         print(f"[OK] categories: criado category={category.id}")
 
         # --- sla_rules ---
         sla_rule = SLARule(priority="high", response_time_hours=1, resolution_time_hours=8)
         db.add(sla_rule)
         db.flush()
+        sla_rule_id = sla_rule.id
         print(f"[OK] sla_rules: criado sla_rule={sla_rule.id}")
 
         # --- kb_articles ---
@@ -49,6 +57,7 @@ def run():
         )
         db.add(kb_article)
         db.flush()
+        kb_article_id = kb_article.id
         print(f"[OK] kb_articles: criado kb_article={kb_article.id}")
 
         # --- tickets (com ai_suggested_* separado do valor final, ver §5) ---
@@ -65,6 +74,7 @@ def run():
         )
         db.add(ticket)
         db.flush()
+        ticket_id = ticket.id
         assert ticket.priority == "medium"
         assert ticket.ai_suggested_priority == "high"
         assert ticket.priority != ticket.ai_suggested_priority, (
@@ -80,6 +90,7 @@ def run():
         )
         db.add(interaction)
         db.flush()
+        interaction_id = interaction.id
         print(f"[OK] interactions: criado interaction={interaction.id}")
 
         db.commit()
@@ -94,14 +105,24 @@ def run():
 
         print("\nTODOS OS TESTES DA FASE 1 PASSARAM")
     finally:
-        # limpeza dos dados de teste (ordem respeita FKs)
+        # Limpeza por ID (ordem respeita FKs) — não por nome/conteúdo: o banco
+        # é compartilhado com o seed de dev (seed_dev_data.py), que deixa uma
+        # categoria "Rede" persistida; filtrar por nome já colidiu com ela
+        # antes (violação de FK) — ver CLAUDE.md.
         db.rollback()
-        db.query(Interaction).filter(Interaction.content.like("Reiniciei o AP%")).delete()
-        db.query(Ticket).filter(Ticket.title == "Não consigo acessar a rede Wi-Fi").delete()
-        db.query(KBArticle).filter(KBArticle.title == "Como resetar a senha de rede").delete()
-        db.query(SLARule).filter(SLARule.priority == "high").delete()
-        db.query(Category).filter(Category.name == "Rede").delete()
-        db.query(User).filter(User.email.like("teste.%@example.com")).delete()
+        if interaction_id:
+            db.query(Interaction).filter(Interaction.id == interaction_id).delete()
+        if ticket_id:
+            db.query(Ticket).filter(Ticket.id == ticket_id).delete()
+        if kb_article_id:
+            db.query(KBArticle).filter(KBArticle.id == kb_article_id).delete()
+        if sla_rule_id:
+            db.query(SLARule).filter(SLARule.id == sla_rule_id).delete()
+        if category_id:
+            db.query(Category).filter(Category.id == category_id).delete()
+        user_ids = [i for i in (requester_id, technician_id) if i]
+        if user_ids:
+            db.query(User).filter(User.id.in_(user_ids)).delete(synchronize_session=False)
         db.commit()
         db.close()
         print("[OK] limpeza: dados de teste removidos")
