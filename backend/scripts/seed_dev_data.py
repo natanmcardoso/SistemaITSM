@@ -9,9 +9,12 @@ Idempotente: pula qualquer registro cujo email/nome já exista, então pode ser
 rodado de novo sem duplicar nada. Para resetar de vez, apague as linhas
 manualmente no Neon.
 """
+from datetime import datetime, timedelta, timezone
+
 from app.database import SessionLocal
-from app.models import Category, Ticket, User
+from app.models import Category, SLARule, Ticket, User
 from app.security import hash_password
+from app.services.sla import compute_sla_due_at
 
 DEMO_PASSWORD = "demo1234"
 
@@ -30,7 +33,18 @@ CATEGORIES = [
     {"name": "Acesso e Conta", "default_sla_hours": 4},
 ]
 
-# (title, description, priority, status, category_name, requester_email, assignee_email)
+# response_time_hours = prazo pra primeira resposta; resolution_time_hours =
+# prazo pra sla_due_at (app/services/sla.py). Valores típicos de mercado.
+SLA_RULES = [
+    {"priority": "critical", "response_time_hours": 1, "resolution_time_hours": 4},
+    {"priority": "high", "response_time_hours": 2, "resolution_time_hours": 8},
+    {"priority": "medium", "response_time_hours": 8, "resolution_time_hours": 24},
+    {"priority": "low", "response_time_hours": 24, "resolution_time_hours": 72},
+]
+
+# (title, description, priority, status, category_name, requester_email,
+#  assignee_email, created_days_ago) — created_days_ago backdata created_at
+# pra alguns chamados nascerem com SLA já estourado (demo do dashboard).
 TICKETS = [
     (
         "Notebook não liga",
@@ -40,6 +54,7 @@ TICKETS = [
         "Hardware",
         "joao.pereira@itsm.dev",
         "carla.mendes@itsm.dev",
+        0,
     ),
     (
         "Erro ao abrir sistema financeiro",
@@ -49,6 +64,7 @@ TICKETS = [
         "Software",
         "marina.alves@itsm.dev",
         "carla.mendes@itsm.dev",
+        0,
     ),
     (
         "Sem acesso à VPN",
@@ -58,6 +74,7 @@ TICKETS = [
         "Rede",
         "joao.pereira@itsm.dev",
         None,
+        3,  # medium = 24h de resolução -> backdatado 3 dias = SLA estourado
     ),
     (
         "Solicitação de acesso ao Drive compartilhado",
@@ -67,6 +84,7 @@ TICKETS = [
         "Acesso e Conta",
         "marina.alves@itsm.dev",
         "rafael.souza@itsm.dev",
+        0,
     ),
     (
         "Impressora do 3º andar não imprime",
@@ -76,6 +94,7 @@ TICKETS = [
         "Hardware",
         "joao.pereira@itsm.dev",
         None,
+        0,
     ),
 ]
 
@@ -112,12 +131,25 @@ def run():
             categories_by_name[c["name"]] = category
             print(f"[criado] category: {category.name}")
 
+        for r in SLA_RULES:
+            existing = db.query(SLARule).filter(SLARule.priority == r["priority"]).first()
+            if existing:
+                continue
+            rule = SLARule(
+                priority=r["priority"],
+                response_time_hours=r["response_time_hours"],
+                resolution_time_hours=r["resolution_time_hours"],
+            )
+            db.add(rule)
+            print(f"[criado] sla_rule: {rule.priority}")
+
         db.commit()
 
-        for title, description, priority, status, cat_name, requester_email, assignee_email in TICKETS:
+        for title, description, priority, status, cat_name, requester_email, assignee_email, days_ago in TICKETS:
             existing = db.query(Ticket).filter(Ticket.title == title).first()
             if existing:
                 continue
+            created_at = datetime.now(timezone.utc) - timedelta(days=days_ago)
             ticket = Ticket(
                 title=title,
                 description=description,
@@ -128,6 +160,8 @@ def run():
                 assignee_id=users_by_email[assignee_email].id if assignee_email else None,
                 ai_suggested_priority=priority,
                 ai_suggested_category_id=categories_by_name[cat_name].id,
+                created_at=created_at,
+                sla_due_at=compute_sla_due_at(priority, db, from_time=created_at),
             )
             db.add(ticket)
             print(f"[criado] ticket: {title}")

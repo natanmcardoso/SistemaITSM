@@ -51,10 +51,16 @@ export interface AIAccuracyMetric {
   changed: number;
 }
 
+export interface SLAMetric {
+  tracked_total: number;
+  breached: number;
+}
+
 export interface DashboardSummary {
   total_tickets: number;
   by_status: Record<TicketStatus, number>;
   top_categories: CategoryCount[];
   ai_accuracy_priority: AIAccuracyMetric;
   ai_accuracy_category: AIAccuracyMetric;
+  sla: SLAMetric;
 }

@@ -43,11 +43,17 @@ def run():
         print(f"[OK] categories: criado category={category.id}")
 
         # --- sla_rules ---
-        sla_rule = SLARule(priority="high", response_time_hours=1, resolution_time_hours=8)
-        db.add(sla_rule)
-        db.flush()
-        sla_rule_id = sla_rule.id
-        print(f"[OK] sla_rules: criado sla_rule={sla_rule.id}")
+        # priority é única (só 4 valores no enum) — reusa a regra já semeada
+        # por seed_dev_data.py quando existir, em vez de tentar duplicar (já
+        # colidiu com isso antes, ver CLAUDE.md); só limpa no final se foi
+        # este teste que criou.
+        sla_rule = db.query(SLARule).filter(SLARule.priority == "high").first()
+        if sla_rule is None:
+            sla_rule = SLARule(priority="high", response_time_hours=1, resolution_time_hours=8)
+            db.add(sla_rule)
+            db.flush()
+            sla_rule_id = sla_rule.id
+        print(f"[OK] sla_rules: sla_rule={sla_rule.id} (reaproveitada={sla_rule_id is None})")
 
         # --- kb_articles ---
         kb_article = KBArticle(

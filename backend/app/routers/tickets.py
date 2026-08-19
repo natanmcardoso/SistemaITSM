@@ -16,6 +16,7 @@ from app.database import get_db
 from app.models import Ticket
 from app.schemas import TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
 from app.security import get_current_user
+from app.services.sla import compute_sla_due_at
 from app.services.triage import triage_ticket
 
 router = APIRouter(prefix="/tickets", tags=["tickets"], dependencies=[Depends(get_current_user)])
@@ -27,17 +28,19 @@ def create_ticket(payload: TicketCreate, db: Session = Depends(get_db)):
     # de acerto — design-itsm-mvp.md §5). Se o chamador não informou priority/
     # category_id explicitamente, a sugestão vira o valor inicial do chamado.
     triage = triage_ticket(payload.title, payload.description, db)
+    final_priority = payload.priority if payload.priority is not None else triage.priority
 
     ticket = Ticket(
         title=payload.title,
         description=payload.description,
         requester_id=payload.requester_id,
         category_id=payload.category_id if payload.category_id is not None else triage.category_id,
-        priority=payload.priority if payload.priority is not None else triage.priority,
+        priority=final_priority,
         assignee_id=payload.assignee_id,
         ai_suggested_priority=triage.priority,
         ai_suggested_category_id=triage.category_id,
         status="open",
+        sla_due_at=compute_sla_due_at(final_priority, db),
     )
     db.add(ticket)
     try:
@@ -90,6 +93,12 @@ def update_ticket(ticket_id: uuid.UUID, payload: TicketUpdate, db: Session = Dep
     updates = payload.model_dump(exclude_unset=True)
     for field, value in updates.items():
         setattr(ticket, field, value)
+
+    # Reclassificação de prioridade recalcula o prazo, mas sem resetar o
+    # relógio do SLA: continua contando a partir da criação do chamado, não
+    # do instante do PATCH (senão dava pra "ganhar tempo" só reclassificando).
+    if "priority" in updates:
+        ticket.sla_due_at = compute_sla_due_at(ticket.priority, db, from_time=ticket.created_at)
 
     try:
         db.commit()

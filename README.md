@@ -97,6 +97,10 @@ python test_phase4_0_auth.py
 # (Fase 4, tela 3/3), via API real, depois limpa
 python test_phase4_dashboard.py
 
+# roda o teste de SLA (cálculo de sla_due_at + métrica de estouro no
+# dashboard), via API real, depois limpa
+python test_phase4_sla.py
+
 # popula o banco com dados de dev persistentes (técnicos, categorias, chamados
 # de exemplo) — necessário pra tela de fila do técnico ter o que mostrar.
 # Idempotente, pode rodar de novo sem duplicar. Senha de todas as contas: demo1234
@@ -168,10 +172,16 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 
 ### Dashboard do gestor (Fase 4, tela 3/3)
 
-- `GET /dashboard/summary` (restrito a `role=manager`) devolve volume de chamados por status, top categorias e o acerto da IA na triagem — sugestão vs. valor final de `priority`/`category_id` (design-itsm-mvp.md §5), só contando chamados em que a IA de fato sugeriu algo.
-- **Fora do dashboard por decisão explícita:** SLA estourado e % de chamados resolvidos sem intervenção humana — duas das quatro métricas centrais do design doc (§2.3) — porque `sla_due_at` nunca é calculado (a tabela `sla_rules` não é usada em código nenhum) e `resolved_by_ai` nunca é setado (o endpoint `resolve-by-user` não existe). Mostrar essas métricas exigiria implementar esses fluxos primeiro — decidiu-se manter o dashboard só com dado real por ora.
+- `GET /dashboard/summary` (restrito a `role=manager`) devolve volume de chamados por status, top categorias, SLA estourado e o acerto da IA na triagem — sugestão vs. valor final de `priority`/`category_id` (design-itsm-mvp.md §5), só contando chamados em que a IA de fato sugeriu algo.
+- **Ainda fora do dashboard:** % de chamados resolvidos sem intervenção humana — a última das quatro métricas centrais do design doc (§2.3) — porque `resolved_by_ai` nunca é setado (o endpoint `resolve-by-user` não existe ainda).
 - Guard de autenticação plugado em `/tickets` nesta tela (dívida da Fase 4.0 que ainda estava aberta): qualquer usuário logado pode chamar, sem restrição de role.
 - Login estendido de novo: o seletor agora também lista Beatriz Lima (manager); login como gestor cai direto em `/dashboard`.
+
+### SLA (Fase 4, sub-fase pós tela 3/3)
+
+- `sla_rules` semeada (`scripts/seed_dev_data.py`) com 4 prioridades — `resolution_time_hours`: critical=4h, high=8h, medium=24h, low=72h.
+- `sla_due_at` calculado em `POST /tickets` (criação) e recalculado em `PATCH /tickets/{id}` sempre que `priority` muda — mas a partir de `created_at`, não do instante do PATCH, pra reclassificar prioridade não "resetar o relógio" do SLA.
+- Dashboard mostra chamados com SLA estourado (`sla_due_at` no passado + status ainda aberto).
 
 ---
 

@@ -102,20 +102,40 @@ export function DashboardPage() {
               </div>
             </section>
 
-            <section className="mb-4">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Acerto da IA na triagem — sugestão vs. valor final
-              </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <AccuracyCard title="Prioridade" metric={summary.ai_accuracy_priority} />
-                <AccuracyCard title="Categoria" metric={summary.ai_accuracy_category} />
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              SLA e acerto da IA na triagem
+            </h2>
+            <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-1">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  SLA estourado
+                </h3>
+                {summary.sla.tracked_total === 0 ? (
+                  <p className="mt-3 text-sm text-slate-500">Nenhum chamado com SLA calculado ainda.</p>
+                ) : (
+                  <>
+                    <p
+                      className={`mt-3 text-3xl font-semibold ${
+                        summary.sla.breached > 0 ? "text-red-600" : "text-slate-900"
+                      }`}
+                    >
+                      {summary.sla.breached}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      de {summary.sla.tracked_total} chamado(s) com prazo calculado, ainda abertos e já
+                      passado do prazo
+                    </p>
+                  </>
+                )}
               </div>
+              <AccuracyCard title="Prioridade" metric={summary.ai_accuracy_priority} />
+              <AccuracyCard title="Categoria" metric={summary.ai_accuracy_category} />
             </section>
 
             <p className="text-xs text-slate-400">
-              SLA estourado e % de chamados resolvidos sem intervenção humana ainda não aparecem aqui — essas
-              métricas dependem de fluxos que o backend ainda não implementa (cálculo de SLA e
-              resolução direta pelo usuário via sugestão da IA).
+              % de chamados resolvidos sem intervenção humana ainda não aparece aqui — depende de um fluxo
+              que o backend ainda não implementa (usuário fechar o próprio chamado a partir da sugestão da
+              IA).
             </p>
           </>
         ) : null}

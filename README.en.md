@@ -97,6 +97,10 @@ python test_phase4_0_auth.py
 # 3/3), via the real API, then cleans up
 python test_phase4_dashboard.py
 
+# runs the SLA test (sla_due_at calculation + breach metric on the
+# dashboard), via the real API, then cleans up
+python test_phase4_sla.py
+
 # seeds the database with persistent dev data (technicians, categories, sample
 # tickets) — needed so the technician queue screen has something to show.
 # Idempotent, safe to re-run. Password for every seeded account: demo1234
@@ -168,10 +172,16 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 
 ### Manager dashboard (Phase 4, screen 3/3)
 
-- `GET /dashboard/summary` (restricted to `role=manager`) returns ticket volume by status, top categories, and the AI's triage accuracy — suggested vs. final value of `priority`/`category_id` (design-itsm-mvp.md §5), counting only tickets where the AI actually suggested something.
-- **Left out of the dashboard by explicit decision:** SLA breaches and the % of tickets resolved without human intervention — two of the design doc's four headline metrics (§2.3) — because `sla_due_at` is never calculated (the `sla_rules` table isn't used anywhere in the code) and `resolved_by_ai` is never set (the `resolve-by-user` endpoint doesn't exist). Showing those metrics would require building those flows first — the decision was to keep the dashboard limited to real data for now.
+- `GET /dashboard/summary` (restricted to `role=manager`) returns ticket volume by status, top categories, SLA breaches, and the AI's triage accuracy — suggested vs. final value of `priority`/`category_id` (design-itsm-mvp.md §5), counting only tickets where the AI actually suggested something.
+- **Still left out of the dashboard:** the % of tickets resolved without human intervention — the last of the design doc's four headline metrics (§2.3) — because `resolved_by_ai` is never set yet (the `resolve-by-user` endpoint doesn't exist).
 - Auth guard wired into `/tickets` as part of this screen (a Phase 4.0 debt that was still open): any logged-in user can call it, no role restriction.
 - Login extended again: the picker now also lists Beatriz Lima (manager); logging in as manager lands directly on `/dashboard`.
+
+### SLA (Phase 4, sub-phase after screen 3/3)
+
+- `sla_rules` seeded (`scripts/seed_dev_data.py`) with 4 priorities — `resolution_time_hours`: critical=4h, high=8h, medium=24h, low=72h.
+- `sla_due_at` is computed on `POST /tickets` (creation) and recomputed on `PATCH /tickets/{id}` whenever `priority` changes — but based on `created_at`, not the moment of the PATCH, so reclassifying priority can't "reset the clock" on the SLA.
+- The dashboard shows tickets with a breached SLA (`sla_due_at` in the past + status still open).
 
 ---
 

@@ -98,12 +98,23 @@ class AIAccuracyMetric(BaseModel):
     changed: int
 
 
-class DashboardSummary(BaseModel):
-    """Fase 4, tela 3/3 — só métricas com dado real no banco hoje.
+class SLAMetric(BaseModel):
+    """Chamados com `sla_due_at` calculado (sub-fase SLA, pós tela 3/3).
 
-    SLA estourado e % resolvido por IA ficam de fora: `sla_due_at` nunca é
-    calculado (sla_rules não é usada) e `resolved_by_ai` nunca é setado (não
-    existe endpoint resolve-by-user) — ver CLAUDE.md.
+    tracked_total = chamados com sla_due_at preenchido (têm prioridade
+    reconhecida em sla_rules); breached = desses, quantos já passaram do
+    prazo e ainda não foram resolvidos/fechados.
+    """
+
+    tracked_total: int
+    breached: int
+
+
+class DashboardSummary(BaseModel):
+    """Fase 4, tela 3/3 (+ sub-fase SLA depois).
+
+    % resolvido por IA ainda fica de fora: `resolved_by_ai` nunca é setado
+    (não existe endpoint resolve-by-user ainda) — ver CLAUDE.md.
     """
 
     total_tickets: int
@@ -111,3 +122,4 @@ class DashboardSummary(BaseModel):
     top_categories: list[CategoryCount]
     ai_accuracy_priority: AIAccuracyMetric
     ai_accuracy_category: AIAccuracyMetric
+    sla: SLAMetric
