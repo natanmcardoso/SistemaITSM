@@ -5,3 +5,4 @@ alembic>=1.14
 psycopg[binary]>=3.2.10
 python-dotenv>=1.0.1
 pydantic>=2.10
+httpx>=0.28

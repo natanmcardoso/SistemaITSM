@@ -11,7 +11,8 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ## Status atual
 
 ✅ Fase 1 concluída e testada — modelo de dados + migrations
-🚧 Próxima: Fase 2 (endpoints core de `tickets`)
+✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
+🚧 Próxima: Fase 3 (integração com IA de triagem)
 
 ---
 
@@ -35,7 +36,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ## Roadmap
 
 - [x] Fase 1 — Modelo de dados + migrations
-- [ ] Fase 2 — Endpoints core de `tickets` (CRUD, sem IA)
+- [x] Fase 2 — Endpoints core de `tickets` (CRUD, sem IA)
 - [ ] Fase 3 — Integração com IA de triagem
 - [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
 - [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
@@ -63,6 +64,23 @@ python -m alembic upgrade head
 
 # roda o teste da Fase 1 (insere e consulta registros de teste, depois limpa)
 python test_phase1_data_model.py
+
+# sobe a API
+python -m uvicorn app.main:app --reload
+# docs interativas em http://127.0.0.1:8000/docs
+
+# roda o teste da Fase 2 (CRUD de tickets via API real, depois limpa)
+python test_phase2_tickets_api.py
+```
+
+### Endpoints disponíveis (Fase 2)
+
+```
+GET    /health
+POST   /tickets                     → cria chamado (status=open, sem triagem por IA ainda)
+GET    /tickets                     → lista (filtros: status, priority, assignee_id)
+GET    /tickets/{id}                → detalhe + histórico de interações
+PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id
 ```
 
 ---

@@ -11,7 +11,8 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ## Current status
 
 ✅ Phase 1 completed and tested — data model + migrations
-🚧 Next: Phase 2 (core `tickets` endpoints)
+✅ Phase 2 completed and tested — core `tickets` endpoints (CRUD, no AI)
+🚧 Next: Phase 3 (AI triage integration)
 
 ---
 
@@ -35,7 +36,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ## Roadmap
 
 - [x] Phase 1 — Data model + migrations
-- [ ] Phase 2 — Core `tickets` endpoints (CRUD, no AI yet)
+- [x] Phase 2 — Core `tickets` endpoints (CRUD, no AI yet)
 - [ ] Phase 3 — AI triage integration
 - [ ] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
 - [ ] Phase 5 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
@@ -63,6 +64,23 @@ python -m alembic upgrade head
 
 # runs the Phase 1 test (inserts and queries test records, then cleans up)
 python test_phase1_data_model.py
+
+# starts the API
+python -m uvicorn app.main:app --reload
+# interactive docs at http://127.0.0.1:8000/docs
+
+# runs the Phase 2 test (ticket CRUD via the real API, then cleans up)
+python test_phase2_tickets_api.py
+```
+
+### Available endpoints (Phase 2)
+
+```
+GET    /health
+POST   /tickets                     → creates a ticket (status=open, no AI triage yet)
+GET    /tickets                     → list (filters: status, priority, assignee_id)
+GET    /tickets/{id}                → detail + interaction history
+PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id
 ```
 
 ---
