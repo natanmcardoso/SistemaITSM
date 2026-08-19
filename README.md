@@ -21,6 +21,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 5 (Navegação e Descoberta) concluída e testada — filtros + busca na fila, dashboard clicável e as 4 telas responsivas (breakpoints Tailwind + sidebar em drawer no mobile)
 ✅ Fase 6 (CMDB + Problem Management) concluída e testada — tabelas `assets`/`problems`, seed vinculando chamados a ambos, dashboard mostrando "N chamados vinculados" por ativo/problema (sem tela de CRUD dedicada, por design)
 ✅ Fase 8 (Ajustes de fila, busca ampliada e KB editável) concluída e testada — cards de prioridade clicáveis, "Meus chamados"/"Fila geral" em abas próprias na sidebar, busca por nome de solicitante/técnico, criação e edição de artigos da base de conhecimento
+✅ Fase 9 (Tabela de chamados customizável) concluída e testada — colunas de data de abertura e SLA, cabeçalhos clicáveis pra ordenar, seletor de colunas visíveis (escolha salva por navegador)
 
 ---
 
@@ -61,6 +62,10 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
   - [x] "Meus chamados" e "Fila geral" em abas próprias na sidebar do técnico
   - [x] Busca por nome de solicitante/técnico em `GET /tickets?query=`
   - [x] Criação e edição de artigos da base de conhecimento
+- [x] Fase 9 — Tabela de chamados customizável
+  - [x] Colunas de data de abertura e SLA
+  - [x] Cabeçalhos clicáveis pra ordenar
+  - [x] Seletor de colunas visíveis (persistido por navegador)
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -294,6 +299,12 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - **"Meus chamados" e "Fila geral" em abas próprias:** antes eram duas seções empilhadas numa única tela; agora são duas rotas com item de sidebar dedicado (`/meus-atendimentos` e `/fila`), reaproveitando o mesmo componente de fila+filtros (`TicketQueueBoard`). O filtro "Técnico" que existia na barra de filtros foi removido — o escopo já é fixo por aba.
 - **Busca por nome:** `GET /tickets?query=` passa a casar também pelo nome do solicitante ou do técnico atribuído (além de título/descrição, que já buscava desde a Fase 5).
 - **CRUD de artigos da KB:** `POST /kb-articles` (criar) e `PATCH /kb-articles/{id}` (editar), restritos a `role=technician`. Sem exclusão. A tela de base de conhecimento ganhou botão "Novo artigo" e ícone de editar em cada card, com formulário inline.
+
+### Tabela de chamados customizável (Fase 9)
+
+- **Novas colunas:** "Aberto em" e "SLA" na tabela de "Meus chamados"/"Fila geral" — SLA mostra "(estourado)" em vermelho quando o prazo passou e o chamado ainda está aberto.
+- **Ordenação por coluna:** clique no cabeçalho ordena por aquela coluna; clique de novo inverte a direção (▲/▼). Sem clique nenhum, a lista continua ordenada por prioridade, como sempre.
+- **Colunas visíveis à sua escolha:** botão "Colunas" acima da tabela deixa esconder qualquer combinação de colunas (sempre fica pelo menos 1 visível) — a escolha é salva no navegador e vale pras duas telas.
 
 ---
 

@@ -173,3 +173,12 @@ export function IconPlus(props: SVGProps<SVGSVGElement>) {
     </Icon>
   );
 }
+
+export function IconColumns(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+      <path d="M9 4v16M15 4v16" />
+    </Icon>
+  );
+}

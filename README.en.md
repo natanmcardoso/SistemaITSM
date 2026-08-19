@@ -21,6 +21,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 5 (Navigation & Discovery) completed and tested — queue filters/search, a clickable dashboard, and all 4 screens made responsive (Tailwind breakpoints + a mobile drawer sidebar)
 ✅ Phase 6 (CMDB + Problem Management) completed and tested — `assets`/`problems` tables, seed data linking tickets to both, dashboard showing "N tickets linked" per asset/problem (no dedicated CRUD screen, by design)
 ✅ Phase 8 (Queue tweaks, wider search, editable KB) completed and tested — clickable priority cards, "My tickets"/"General queue" as their own sidebar tabs, search by requester/technician name, creating and editing knowledge-base articles
+✅ Phase 9 (Customizable ticket table) completed and tested — opened-date and SLA columns, clickable sortable headers, a column-visibility picker (choice saved per browser)
 
 ---
 
@@ -61,6 +62,10 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
   - [x] "My tickets" and "General queue" as their own tabs on the technician sidebar
   - [x] Search by requester/technician name in `GET /tickets?query=`
   - [x] Creating and editing knowledge-base articles
+- [x] Phase 9 — Customizable ticket table
+  - [x] Opened-date and SLA columns
+  - [x] Clickable sortable headers
+  - [x] Column-visibility picker (saved per browser)
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -294,6 +299,12 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - **"My tickets" and "General queue" as their own tabs:** used to be two stacked sections on a single screen; now they're two routes with a dedicated sidebar item each (`/meus-atendimentos` and `/fila`), reusing the same queue+filters component (`TicketQueueBoard`). The "Technician" filter that existed in the filter bar was removed — the scope is already fixed per tab.
 - **Search by name:** `GET /tickets?query=` now also matches the requester's or assignee's name (in addition to title/description, which already worked since Phase 5).
 - **KB article CRUD:** `POST /kb-articles` (create) and `PATCH /kb-articles/{id}` (edit), restricted to `role=technician`. No delete. The knowledge base screen gained a "New article" button and an edit icon on each card, with an inline form.
+
+### Customizable ticket table (Phase 9)
+
+- **New columns:** "Opened on" and "SLA" on the "My tickets"/"General queue" table — SLA shows "(breached)" in red when the deadline has passed and the ticket is still open.
+- **Sort by column:** clicking a header sorts by that column; clicking again flips the direction (▲/▼). With no click, the list stays sorted by priority, as before.
+- **Pick your own visible columns:** a "Columns" button above the table lets you hide any combination of columns (at least 1 always stays visible) — the choice is saved in the browser and applies to both screens.
 
 ---
 
