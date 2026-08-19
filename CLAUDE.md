@@ -16,12 +16,14 @@ Documento de referência completo (fluxos, modelo de dados, contrato de API): `d
 - ✅ Fase 3 — triagem por IA plugada na criação de chamados (testada; modo mock por padrão, live com `ANTHROPIC_API_KEY`)
 - ✅ Fase 4.0 — autenticação (login + JWT) (testada) — sub-fase levantada ao iniciar a Fase 4: o design doc lista `/auth/login` mas nenhuma das 4 fases originais cobria implementá-lo. Escopo: `password_hash` em `users`, hashing bcrypt, JWT (`app/security.py`), `POST /auth/login`, `GET /auth/me`. **Os endpoints de `tickets` ainda não exigem token** — isso é plugado junto com a tela de fila do técnico, não antes.
 - `JWT_SECRET` gerado e salvo em `.env` (**nunca commitar**)
+- ✅ Fase 4, tela 1/3 — fila do técnico (testada visualmente pelo usuário) — `frontend/` novo: Vite + React + TypeScript + React Router + Tailwind CSS. Login por seletor de técnico (`POST /auth/login`, senha `demo1234` preenchida automaticamente) + fila (`GET /tickets`) dividida em "Meus chamados" / "Fila geral — não atribuídos". `backend/scripts/seed_dev_data.py` (idempotente) povoa técnicos/categorias/chamados de dev; `frontend/src/devData.ts` espelha manualmente esses IDs/nomes (decisão abaixo: sem `GET /users`/`GET /categories`). Precisou de `CORSMiddleware` no backend liberando `http://localhost:5173` — não estava no design original, foi descoberto ao integrar de verdade.
 
-Próximo passo real: Fase 4 (frontend) — primeira tela: fila do técnico. Decisões pendentes antes de começar: stack de frontend (Vite? roteador? styling?) e wiring do token JWT (login mock simples para escolher o técnico, já que não há endpoint de cadastro de usuário — contas de teste são criadas direto no banco).
+Próximo passo real: Fase 4, tela 2/3 — novo chamado.
 
 Decisões já tomadas para a Fase 4 (não reabrir sem motivo):
+- Frontend: Vite + React + TypeScript + React Router + Tailwind CSS.
 - Sem tela de login "de verdade" por ora — um seletor simples de usuário/técnico no frontend, chamando `POST /auth/login` com credenciais de contas semeadas direto no banco.
-- `GET /users` e `GET /categories` **não serão criados agora** — o frontend consulta esses dados direto no Postgres (via Neon) enquanto não houver uma fase dedicada a expor esses endpoints.
+- `GET /users` e `GET /categories` **não serão criados agora** — na prática, isso virou um espelho manual (`frontend/src/devData.ts`) dos IDs/nomes que o seed grava no Postgres; se o seed rodar de novo em outro banco, os UUIDs mudam e esse arquivo precisa ser atualizado à mão.
 
 ---
 

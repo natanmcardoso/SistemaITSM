@@ -14,14 +14,15 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 2 completed and tested — core `tickets` endpoints (CRUD, no AI)
 ✅ Phase 3 completed and tested — AI triage wired into ticket creation (mock mode by default; live mode with Anthropic when `ANTHROPIC_API_KEY` is set)
 ✅ Phase 4.0 completed and tested — authentication (login + JWT), a prerequisite for Phase 4 (frontend)
-🚧 Next: Phase 4 (frontend) — technician queue
+🚧 Phase 4 (frontend) in progress — screen 1/3 completed and tested: technician queue (login + AI-triaged listing)
+🚧 Next: new ticket screen
 
 ---
 
 ## Stack
 
 - **Backend:** FastAPI (Python)
-- **Frontend:** React
+- **Frontend:** React (Vite + TypeScript, React Router, Tailwind CSS)
 - **Database:** PostgreSQL (hosted on [Neon](https://neon.tech))
 - **AI:** triage service reused from the AIOps Copilot project
 
@@ -42,6 +43,9 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 - [x] Phase 3 — AI triage integration
 - [x] Phase 4.0 — Authentication (login + JWT)
 - [ ] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
+  - [x] Technician queue
+  - [ ] New ticket
+  - [ ] Manager dashboard
 - [ ] Phase 5 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -89,7 +93,31 @@ python test_phase3_ai_triage.py
 
 # runs the Phase 4.0 test (login + JWT via the real API, then cleans up)
 python test_phase4_0_auth.py
+
+# seeds the database with persistent dev data (technicians, categories, sample
+# tickets) — needed so the technician queue screen has something to show.
+# Idempotent, safe to re-run. Password for every seeded account: demo1234
+python scripts/seed_dev_data.py
 ```
+
+### Frontend (Phase 4)
+
+```bash
+cd frontend
+npm install
+
+# create frontend/.env (points to the local API)
+cp .env.example .env
+
+npm run dev
+# http://localhost:5173/login — pick a technician (password demo1234 is
+# filled in automatically) and see the queue load with the seeded tickets above
+```
+
+> No `GET /users`/`GET /categories` endpoint in this phase (design decision) —
+> the names shown in the queue come from a manual mirror of the seed data in
+> `frontend/src/devData.ts`. If you run `seed_dev_data.py` against a fresh
+> database, the UUIDs change and that file needs to be updated by hand.
 
 ### Available endpoints
 
@@ -117,6 +145,13 @@ PATCH  /tickets/{id}                → updates status/priority/category_id/assi
 - Endpoints that require login use the `Authorization: Bearer <token>` header; `GET /auth/me` is the reference endpoint for validating a token.
 - **There's no public user signup in this phase** — accounts are created directly in the database (password hashed with bcrypt via `app.security.hash_password`). A signup endpoint is left for a future phase, if needed.
 - The `tickets` endpoints don't require authentication yet — that's wired in together with Phase 4 (frontend), once the technician queue starts calling the API with the login token.
+
+### Technician queue (Phase 4, screen 1/3)
+
+- Login (`POST /auth/login`) via a simple technician picker — no password field, the seeded accounts' password (`demo1234`) is filled in automatically.
+- The queue (`GET /tickets`) is split into "My tickets" (assigned to the logged-in technician) and "General queue — unassigned", sorted by AI-suggested priority.
+- Each row shows the final priority and, when the technician reclassified it, the AI's original suggestion alongside it — a direct view of the data that feeds the AI-accuracy metric (design-itsm-mvp.md §5).
+- Backend has `CORSMiddleware` allowing `http://localhost:5173` (the only dev origin permitted).
 
 ---
 

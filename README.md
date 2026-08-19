@@ -14,14 +14,15 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
 ✅ Fase 3 concluída e testada — triagem por IA plugada na criação de chamados (modo mock por padrão; live com Anthropic quando `ANTHROPIC_API_KEY` estiver configurada)
 ✅ Fase 4.0 concluída e testada — autenticação (login + JWT), pré-requisito da Fase 4 (frontend)
-🚧 Próxima: Fase 4 (frontend) — fila do técnico
+🚧 Fase 4 (frontend) em andamento — tela 1/3 concluída e testada: fila do técnico (login + listagem já triada pela IA)
+🚧 Próxima: tela de novo chamado
 
 ---
 
 ## Stack
 
 - **Backend:** FastAPI (Python)
-- **Frontend:** React
+- **Frontend:** React (Vite + TypeScript, React Router, Tailwind CSS)
 - **Banco de dados:** PostgreSQL (hospedado na [Neon](https://neon.tech))
 - **IA:** serviço de triagem reaproveitado do AIOps Copilot
 
@@ -42,6 +43,9 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 - [x] Fase 3 — Integração com IA de triagem
 - [x] Fase 4.0 — Autenticação (login + JWT)
 - [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
+  - [x] Fila do técnico
+  - [ ] Novo chamado
+  - [ ] Dashboard do gestor
 - [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -89,7 +93,31 @@ python test_phase3_ai_triage.py
 
 # roda o teste da Fase 4.0 (login + JWT via API real, depois limpa)
 python test_phase4_0_auth.py
+
+# popula o banco com dados de dev persistentes (técnicos, categorias, chamados
+# de exemplo) — necessário pra tela de fila do técnico ter o que mostrar.
+# Idempotente, pode rodar de novo sem duplicar. Senha de todas as contas: demo1234
+python scripts/seed_dev_data.py
 ```
+
+### Frontend (Fase 4)
+
+```bash
+cd frontend
+npm install
+
+# cria frontend/.env (aponta pra API local)
+cp .env.example .env
+
+npm run dev
+# http://localhost:5173/login — escolha um técnico (senha demo1234 preenchida
+# automaticamente) e veja a fila carregada com os chamados semeados acima
+```
+
+> Sem endpoint `GET /users`/`GET /categories` nesta fase (decisão do design) — os
+> nomes exibidos na fila vêm de um espelho manual do seed em `frontend/src/devData.ts`.
+> Se rodar `seed_dev_data.py` num banco novo, os UUIDs mudam e esse arquivo precisa
+> ser atualizado à mão.
 
 ### Endpoints disponíveis
 
@@ -117,6 +145,13 @@ PATCH  /tickets/{id}                → atualiza status/priority/category_id/ass
 - Endpoints que exigem login usam o header `Authorization: Bearer <token>`; `GET /auth/me` é o endpoint de referência para validar o token.
 - **Não há cadastro público de usuário nesta fase** — contas são criadas direto no banco (senha com hash bcrypt via `app.security.hash_password`). Um endpoint de cadastro fica para uma fase futura, se necessário.
 - Os endpoints de `tickets` ainda não exigem autenticação — isso é plugado junto com a Fase 4 (frontend), quando a fila do técnico passa a chamar a API com o token do login.
+
+### Fila do técnico (Fase 4, tela 1/3)
+
+- Login (`POST /auth/login`) via seletor simples de técnico — sem tela de senha, a senha das contas semeadas (`demo1234`) já vai preenchida.
+- A fila (`GET /tickets`) é dividida em "Meus chamados" (atribuídos ao técnico logado) e "Fila geral — não atribuídos", ordenada por prioridade sugerida pela IA.
+- Cada linha mostra a prioridade final e, quando o técnico reclassificou, a sugestão original da IA ao lado — visualização direta do dado que alimenta a métrica de acerto da IA (design-itsm-mvp.md §5).
+- Backend com `CORSMiddleware` liberando `http://localhost:5173` (único origin de dev permitido).
 
 ---
 
