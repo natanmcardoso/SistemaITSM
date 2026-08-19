@@ -4,7 +4,16 @@ import { ApiError, getDashboardSummary } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { Sidebar } from "../components/Sidebar";
 import { StatusBadge } from "../components/StatusBadge";
-import { IconAlertTriangle, IconChart, IconLayers, IconSparkle, IconTarget, IconTicket } from "../components/icons";
+import {
+  IconAlertTriangle,
+  IconChart,
+  IconFlag,
+  IconLayers,
+  IconServer,
+  IconSparkle,
+  IconTarget,
+  IconTicket,
+} from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { AIAccuracyMetric, DashboardSummary, TicketStatus } from "../types";
 
@@ -247,6 +256,59 @@ export function DashboardPage() {
                 metric={summary.ai_accuracy_category}
                 icon={<IconTarget width={20} height={20} />}
               />
+            </div>
+
+            {/* CMDB + Problem Management (Fase 6) — sem tela de CRUD
+                dedicada nesta fase; só o vínculo com chamados, aqui. */}
+            <div className="mt-6 mb-2.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
+              CMDB e Problem Management
+            </div>
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10.5 w-10.5 items-center justify-center rounded-xl bg-primary-tint">
+                    <IconServer width={20} height={20} className="text-primary" />
+                  </div>
+                  <div className="text-xs font-bold tracking-wide text-slate-400 uppercase">
+                    Ativos com mais chamados
+                  </div>
+                </div>
+                {summary.top_assets.length === 0 ? (
+                  <p className="text-sm text-slate-500">Nenhum chamado vinculado a um ativo ainda.</p>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {summary.top_assets.map((a) => (
+                      <div key={a.name} className="flex items-center justify-between text-[13.5px]">
+                        <span className="text-slate-600">{a.name}</span>
+                        <span className="font-extrabold text-slate-900">{a.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10.5 w-10.5 items-center justify-center rounded-xl bg-high-tint">
+                    <IconFlag width={20} height={20} className="text-high" />
+                  </div>
+                  <div className="text-xs font-bold tracking-wide text-slate-400 uppercase">
+                    Problemas com mais chamados
+                  </div>
+                </div>
+                {summary.top_problems.length === 0 ? (
+                  <p className="text-sm text-slate-500">Nenhum chamado vinculado a um problema ainda.</p>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {summary.top_problems.map((p) => (
+                      <div key={p.name} className="flex items-center justify-between text-[13.5px]">
+                        <span className="text-slate-600">{p.name}</span>
+                        <span className="font-extrabold text-slate-900">{p.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </>
         ) : null}

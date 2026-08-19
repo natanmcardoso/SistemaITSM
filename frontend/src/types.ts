@@ -88,6 +88,9 @@ export interface DashboardSummary {
   ai_accuracy_category: AIAccuracyMetric;
   sla: SLAMetric;
   ai_resolution: AIResolutionMetric;
+  // Fase 6 (CMDB + Problem Management) — mesmo shape de CategoryCount
+  top_assets: CategoryCount[];
+  top_problems: CategoryCount[];
 }
 
 export interface KBArticleOut {

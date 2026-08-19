@@ -19,6 +19,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Ticket detail screen — technician can assign, change status/priority/category, and log history entries, straight from the UI
 ✅ Ticket tracking (end user) + KB search (technician) — close the design doc's last remaining gaps (§2.1/§2.2)
 ✅ Phase 5 (Navigation & Discovery) completed and tested — queue filters/search, a clickable dashboard, and all 4 screens made responsive (Tailwind breakpoints + a mobile drawer sidebar)
+✅ Phase 6 (CMDB + Problem Management) completed and tested — `assets`/`problems` tables, seed data linking tickets to both, dashboard showing "N tickets linked" per asset/problem (no dedicated CRUD screen, by design)
 
 ---
 
@@ -53,7 +54,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
   - [x] Filters (status, priority, category, technician) + text search on the technician queue
   - [x] Clickable dashboard (metrics become links to an already-filtered queue)
   - [x] Responsive (Tailwind breakpoints; sidebar becomes a mobile drawer)
-- [ ] Phase 6 (future) — CMDB + Problem Management (ITIL alignment)
+- [x] Phase 6 — CMDB + Problem Management (ITIL alignment)
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -123,11 +124,26 @@ python test_phase4_interactions.py
 python test_phase4_meus_chamados.py
 python test_phase4_kb_search.py
 
+# runs the filters/search test (category_id + query) and the SLA-breached
+# filter test on GET /tickets (Phase 5), via the real API, then clean up
+python test_phase5_ticket_filters.py
+python test_phase5_sla_filter.py
+
+# runs the CMDB + Problem Management data model test (Phase 6): creates an
+# asset/problem, links them to a ticket, checks persistence, then cleans up
+python test_phase6_cmdb_data_model.py
+
 # seeds the database with persistent dev data (users, categories, sla_rules,
-# kb_articles, sample tickets) — needed so the frontend's 3 screens have
-# something to show. Idempotent, safe to re-run. Password for every seeded
-# account: demo1234
+# kb_articles, assets, problems, sample tickets) — needed so the frontend's
+# screens have something to show. Idempotent, safe to re-run. Password for
+# every seeded account: demo1234
 python scripts/seed_dev_data.py
+
+# runs the tests that read the seed's result above (create/delete nothing):
+# asset/problem-to-ticket links, and the top_assets/top_problems dashboard
+# metrics
+python test_phase6_cmdb_seed.py
+python test_phase6_dashboard.py
 ```
 
 ### Frontend (Phase 4)
@@ -251,6 +267,12 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 
 - `Sidebar.tsx` (queue, dashboard, knowledge base, ticket detail — technician) collapses below `1024px` wide into a compact topbar with a menu button, which opens the same navigation as a slide-in drawer — no more fixed 256px sidebar eating up a phone screen.
 - The remaining screens (login, new ticket, my tickets, ticket detail — end user) got responsive padding and headers.
+
+### CMDB + Problem Management (Phase 6)
+
+- Two new tables: `assets` (name, type, status, owner, serial number) and `problems` (title, root cause, status) — `tickets` gains `asset_id`/`problem_id`, both optional and independent of each other.
+- **No dedicated CRUD screen in this phase** (scope decision — cover ITIL's core well instead of replicating the framework's 34+ practices): assets/problems are seeded via `scripts/seed_dev_data.py` and linked to existing tickets just to feed the dashboard.
+- `GET /dashboard/summary` gained `top_assets`/`top_problems` — "N tickets linked to this asset/problem" — shown in 2 new cards on the manager dashboard.
 
 ---
 

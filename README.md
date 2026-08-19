@@ -19,6 +19,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Tela de detalhe do chamado — técnico consegue atribuir, mudar status/prioridade/categoria e registrar histórico, direto pela UI
 ✅ Acompanhamento do chamado (usuário final) + busca de KB (técnico) — fecham os últimos gaps do design doc (§2.1/§2.2)
 ✅ Fase 5 (Navegação e Descoberta) concluída e testada — filtros + busca na fila, dashboard clicável e as 4 telas responsivas (breakpoints Tailwind + sidebar em drawer no mobile)
+✅ Fase 6 (CMDB + Problem Management) concluída e testada — tabelas `assets`/`problems`, seed vinculando chamados a ambos, dashboard mostrando "N chamados vinculados" por ativo/problema (sem tela de CRUD dedicada, por design)
 
 ---
 
@@ -53,7 +54,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
   - [x] Filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico
   - [x] Dashboard clicável (métricas viram links pra fila já filtrada)
   - [x] Responsivo (breakpoints Tailwind nas telas; sidebar vira drawer no mobile)
-- [ ] Fase 6 (futura) — CMDB + Problem Management (alinhamento ITIL)
+- [x] Fase 6 — CMDB + Problem Management (alinhamento ITIL)
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -123,11 +124,26 @@ python test_phase4_interactions.py
 python test_phase4_meus_chamados.py
 python test_phase4_kb_search.py
 
+# roda os testes de filtros/busca (category_id + query) e do filtro de SLA
+# estourado em GET /tickets (Fase 5), via API real, depois limpam
+python test_phase5_ticket_filters.py
+python test_phase5_sla_filter.py
+
+# roda o teste do modelo de dados de CMDB + Problem Management (Fase 6):
+# cria asset/problem, vincula a um chamado, confere persistência, depois limpa
+python test_phase6_cmdb_data_model.py
+
 # popula o banco com dados de dev persistentes (usuários, categorias,
-# sla_rules, kb_articles, chamados de exemplo) — necessário pras 3 telas do
-# frontend terem o que mostrar. Idempotente, pode rodar de novo sem
-# duplicar. Senha de todas as contas: demo1234
+# sla_rules, kb_articles, assets, problems, chamados de exemplo) —
+# necessário pras telas do frontend terem o que mostrar. Idempotente, pode
+# rodar de novo sem duplicar. Senha de todas as contas: demo1234
 python scripts/seed_dev_data.py
+
+# roda os testes que leem o resultado do seed acima (não criam/apagam nada):
+# vínculos de assets/problems com chamados, e as métricas top_assets/
+# top_problems no dashboard
+python test_phase6_cmdb_seed.py
+python test_phase6_dashboard.py
 ```
 
 ### Frontend (Fase 4)
@@ -251,6 +267,12 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 
 - `Sidebar.tsx` (fila, dashboard, base de conhecimento, detalhe do chamado — técnico) abaixo de `1024px` de largura vira uma topbar compacta com botão de menu, que abre a mesma navegação como um drawer deslizante — sem sidebar fixa de 256px comendo a tela do celular.
 - As demais telas (login, novo chamado, meus chamados, detalhe do chamado — usuário final) ganharam padding e cabeçalhos responsivos.
+
+### CMDB + Problem Management (Fase 6)
+
+- Duas tabelas novas: `assets` (nome, tipo, status, dono, número de série) e `problems` (título, causa raiz, status) — `tickets` ganha `asset_id`/`problem_id`, os dois opcionais e independentes entre si.
+- **Sem tela de CRUD dedicada nesta fase** (decisão de escopo — cobrir o núcleo de ITIL sem replicar as 34+ práticas do framework): ativos/problemas são semeados via `scripts/seed_dev_data.py` e vinculados a chamados existentes só pra alimentar o dashboard.
+- `GET /dashboard/summary` ganhou `top_assets`/`top_problems` — "N chamados vinculados a este ativo/problema" — exibidos em 2 novos cards no dashboard do gestor.
 
 ---
 

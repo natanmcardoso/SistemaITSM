@@ -14,7 +14,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import TICKET_STATUSES, Category, Ticket
+from app.models import TICKET_STATUSES, Asset, Category, Problem, Ticket
 from app.schemas import AIAccuracyMetric, AIResolutionMetric, CategoryCount, DashboardSummary, SLAMetric
 from app.security import require_role
 
@@ -67,6 +67,27 @@ def get_summary(db: Session = Depends(get_db)):
 
     resolved_by_ai = db.query(Ticket).filter(Ticket.resolved_by_ai.is_(True)).count()
 
+    # CMDB + Problem Management (Fase 6) — sem tela de CRUD dedicada; o
+    # dashboard é o único lugar que mostra o vínculo (design: "N chamados
+    # vinculados a este ativo/problema").
+    asset_rows = (
+        db.query(Asset.name, func.count(Ticket.id))
+        .join(Ticket, Ticket.asset_id == Asset.id)
+        .group_by(Asset.name)
+        .order_by(func.count(Ticket.id).desc())
+        .all()
+    )
+    top_assets = [CategoryCount(name=name, count=count) for name, count in asset_rows]
+
+    problem_rows = (
+        db.query(Problem.title, func.count(Ticket.id))
+        .join(Ticket, Ticket.problem_id == Problem.id)
+        .group_by(Problem.title)
+        .order_by(func.count(Ticket.id).desc())
+        .all()
+    )
+    top_problems = [CategoryCount(name=title, count=count) for title, count in problem_rows]
+
     return DashboardSummary(
         total_tickets=total_tickets,
         by_status=by_status,
@@ -75,4 +96,6 @@ def get_summary(db: Session = Depends(get_db)):
         ai_accuracy_category=_ai_accuracy(db, Ticket.ai_suggested_category_id, Ticket.category_id),
         sla=SLAMetric(tracked_total=tracked_total, breached=breached),
         ai_resolution=AIResolutionMetric(total_tickets=total_tickets, resolved_by_ai=resolved_by_ai),
+        top_assets=top_assets,
+        top_problems=top_problems,
     )

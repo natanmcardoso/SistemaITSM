@@ -126,3 +126,22 @@ export function IconX(props: SVGProps<SVGSVGElement>) {
     </Icon>
   );
 }
+
+export function IconServer(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="4" width="18" height="7" rx="1.5" />
+      <rect x="3" y="13" width="18" height="7" rx="1.5" />
+      <path d="M7 7.5h.01M7 16.5h.01" />
+    </Icon>
+  );
+}
+
+export function IconFlag(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M5 21V4" />
+      <path d="M5 4h13l-3 4.5L18 13H5" />
+    </Icon>
+  );
+}

@@ -145,3 +145,8 @@ class DashboardSummary(BaseModel):
     ai_accuracy_category: AIAccuracyMetric
     sla: SLAMetric
     ai_resolution: AIResolutionMetric
+    # Fase 6 (CMDB + Problem Management) — reaproveita CategoryCount (mesmo
+    # shape name/count) em vez de criar AssetCount/ProblemCount só pra isso;
+    # só chamados com asset_id/problem_id preenchido entram na contagem.
+    top_assets: list[CategoryCount]
+    top_problems: list[CategoryCount]
