@@ -12,7 +12,7 @@ manualmente no Neon.
 from datetime import datetime, timedelta, timezone
 
 from app.database import SessionLocal
-from app.models import Category, KBArticle, SLARule, Ticket, User
+from app.models import Asset, Category, KBArticle, Problem, SLARule, Ticket, User
 from app.security import hash_password
 from app.services.sla import compute_sla_due_at
 
@@ -77,6 +77,39 @@ KB_ARTICLES = [
     ),
 ]
 
+# CMDB + Problem Management (Fase 6) — sem tela de CRUD dedicada nesta fase
+# (decisão registrada no CLAUDE.md): ativos/problemas só existem pra
+# demonstrar o vínculo com chamados no dashboard (TICKET_LINKS abaixo).
+ASSETS = [
+    {
+        "name": "Notebook Dell Latitude - TI-014",
+        "type": "notebook",
+        "status": "active",
+        "owner_email": "joao.pereira@itsm.dev",
+        "serial_number": "SN-2024-014",
+    },
+    {
+        "name": "Impressora HP LaserJet - 3º andar",
+        "type": "printer",
+        "status": "active",
+        "owner_email": None,
+        "serial_number": "SN-2022-077",
+    },
+    {
+        "name": "Servidor de Arquivos - Financeiro",
+        "type": "server",
+        "status": "maintenance",
+        "owner_email": None,
+        "serial_number": "SN-SRV-003",
+    },
+]
+
+# (title, root_cause, status)
+PROBLEMS = [
+    ("Falha recorrente de energia em notebooks Dell", None, "investigating"),
+    ("Fila de impressão trava aleatoriamente", "Driver desatualizado no servidor de impressão", "known_error"),
+]
+
 # (title, description, priority, status, category_name, requester_email,
 #  assignee_email, created_days_ago) — created_days_ago backdata created_at
 # pra alguns chamados nascerem com SLA já estourado (demo do dashboard).
@@ -131,6 +164,32 @@ TICKETS = [
         None,
         0,
     ),
+    (
+        "Notebook do financeiro também não liga",
+        "Mesmo comportamento do outro notebook Dell: não liga, luz de energia apagada.",
+        "high",
+        "open",
+        "Hardware",
+        "marina.alves@itsm.dev",
+        None,
+        0,
+    ),
+]
+
+# (ticket_title, asset_name_ou_None, problem_title_ou_None) — vincula
+# chamados já semeados acima aos ativos/problemas (Fase 6). asset_id marca o
+# equipamento físico específico; problem_id agrupa chamados pela mesma causa
+# raiz — os dois são independentes (o segundo notebook do financeiro entra
+# no mesmo problem sem ter asset próprio cadastrado).
+TICKET_LINKS = [
+    ("Notebook não liga", "Notebook Dell Latitude - TI-014", "Falha recorrente de energia em notebooks Dell"),
+    ("Notebook do financeiro também não liga", None, "Falha recorrente de energia em notebooks Dell"),
+    (
+        "Impressora do 3º andar não imprime",
+        "Impressora HP LaserJet - 3º andar",
+        "Fila de impressão trava aleatoriamente",
+    ),
+    ("Erro ao abrir sistema financeiro", "Servidor de Arquivos - Financeiro", None),
 ]
 
 
@@ -186,6 +245,36 @@ def run():
             db.add(article)
             print(f"[criado] kb_article: {title}")
 
+        assets_by_name = {}
+        for a in ASSETS:
+            existing = db.query(Asset).filter(Asset.name == a["name"]).first()
+            if existing:
+                assets_by_name[a["name"]] = existing
+                continue
+            asset = Asset(
+                name=a["name"],
+                type=a["type"],
+                status=a["status"],
+                owner_id=users_by_email[a["owner_email"]].id if a["owner_email"] else None,
+                serial_number=a["serial_number"],
+            )
+            db.add(asset)
+            db.flush()
+            assets_by_name[a["name"]] = asset
+            print(f"[criado] asset: {asset.name}")
+
+        problems_by_title = {}
+        for title, root_cause, status in PROBLEMS:
+            existing = db.query(Problem).filter(Problem.title == title).first()
+            if existing:
+                problems_by_title[title] = existing
+                continue
+            problem = Problem(title=title, root_cause=root_cause, status=status)
+            db.add(problem)
+            db.flush()
+            problems_by_title[title] = problem
+            print(f"[criado] problem: {title}")
+
         db.commit()
 
         for title, description, priority, status, cat_name, requester_email, assignee_email, days_ago in TICKETS:
@@ -208,6 +297,22 @@ def run():
             )
             db.add(ticket)
             print(f"[criado] ticket: {title}")
+
+        db.commit()
+
+        for ticket_title, asset_name, problem_title in TICKET_LINKS:
+            ticket = db.query(Ticket).filter(Ticket.title == ticket_title).first()
+            if ticket is None:
+                continue
+            changed = False
+            if asset_name and ticket.asset_id is None:
+                ticket.asset_id = assets_by_name[asset_name].id
+                changed = True
+            if problem_title and ticket.problem_id is None:
+                ticket.problem_id = problems_by_title[problem_title].id
+                changed = True
+            if changed:
+                print(f"[vinculado] ticket '{ticket_title}' -> asset={asset_name} problem={problem_title}")
 
         db.commit()
 
