@@ -222,8 +222,11 @@ export function QueuePage() {
   const category = searchParams.get("category") ?? "";
   const assignee = searchParams.get("assignee") ?? "";
   const q = searchParams.get("q") ?? "";
+  // Sem controle próprio na barra de filtros — só chega aqui via link do
+  // dashboard ("SLA estourado" → /fila?sla=breached, Fase 5).
+  const sla = searchParams.get("sla") ?? "";
   const [searchInput, setSearchInput] = useState(q);
-  const hasActiveFilters = Boolean(status || priority || category || assignee || q);
+  const hasActiveFilters = Boolean(status || priority || category || assignee || q || sla);
 
   // Mantém o campo de busca em sincronia se a URL mudar por fora (ex.: botão
   // "Limpar filtros", navegação de volta pelo browser).
@@ -240,10 +243,11 @@ export function QueuePage() {
       category_id: category || undefined,
       assignee_id: assignee || undefined,
       query: q || undefined,
+      sla: sla || undefined,
     })
       .then(setTickets)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Falha ao carregar a fila."));
-  }, [auth, status, priority, category, assignee, q]);
+  }, [auth, status, priority, category, assignee, q, sla]);
 
   if (!auth) return null;
 
@@ -316,8 +320,13 @@ export function QueuePage() {
         ) : hasActiveFilters ? (
           <>
             <div className="mb-2.5 flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+              <span className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
                 Resultados filtrados
+                {sla === "breached" && (
+                  <span className="rounded-full bg-crit-tint px-2 py-0.5 text-[11px] font-bold text-crit normal-case">
+                    SLA estourado
+                  </span>
+                )}
               </span>
               <span className="text-xs font-bold text-slate-400">{filteredResults.length}</span>
             </div>

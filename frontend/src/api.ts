@@ -48,6 +48,7 @@ export function listTickets(
     assignee_id?: string;
     requester_id?: string;
     query?: string;
+    sla?: string;
   } = {},
 ): Promise<TicketOut[]> {
   const params = new URLSearchParams();

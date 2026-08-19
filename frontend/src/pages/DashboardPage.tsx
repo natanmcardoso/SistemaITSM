@@ -1,35 +1,56 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError, getDashboardSummary } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { Sidebar } from "../components/Sidebar";
 import { StatusBadge } from "../components/StatusBadge";
 import { IconAlertTriangle, IconChart, IconLayers, IconSparkle, IconTarget, IconTicket } from "../components/icons";
+import { CATEGORY_NAMES } from "../devData";
 import type { AIAccuracyMetric, DashboardSummary, TicketStatus } from "../types";
 
 const STATUS_ORDER: TicketStatus[] = ["open", "in_progress", "resolved", "closed"];
+
+// Fase 5 (dashboard clicável): cada métrica vira link pra fila já filtrada.
+// Categoria é filtrada por category_id no backend, mas o dashboard só devolve
+// o nome (GET /dashboard/summary não expõe category_id) — reaproveita o
+// espelho manual de devData.ts pra achar o id a partir do nome.
+const CATEGORY_ID_BY_NAME: Record<string, string> = Object.fromEntries(
+  Object.entries(CATEGORY_NAMES).map(([id, name]) => [name, id]),
+);
 
 function StatCard({
   icon,
   iconBg,
   iconColor,
   label,
+  linkTo,
   children,
 }: {
   icon: ReactNode;
   iconBg: string;
   iconColor: string;
   label: string;
+  linkTo?: string;
   children: ReactNode;
 }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+  const className =
+    "block rounded-2xl border border-slate-200 bg-white p-5.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]" +
+    (linkTo ? " hover:border-slate-300 hover:shadow-[0_1px_3px_rgba(16,24,40,.08),0_4px_10px_rgba(16,24,40,.08)]" : "");
+  const content = (
+    <>
       <div className={`mb-3.5 flex h-10.5 w-10.5 items-center justify-center rounded-xl ${iconBg}`}>
         <span className={iconColor}>{icon}</span>
       </div>
       <div className="mb-1.5 text-xs font-bold tracking-wide text-slate-400 uppercase">{label}</div>
       {children}
-    </div>
+    </>
+  );
+  return linkTo ? (
+    <Link to={linkTo} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
@@ -136,15 +157,16 @@ export function DashboardPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {STATUS_ORDER.map((status) => (
-                    <span
+                    <Link
                       key={status}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 py-1.5 pr-3 pl-1"
+                      to={`/fila?status=${status}`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 py-1.5 pr-3 pl-1 hover:bg-slate-100"
                     >
                       <StatusBadge status={status} />
                       <span className="text-[12.5px] font-bold text-slate-700">
                         {summary.by_status[status] ?? 0}
                       </span>
-                    </span>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -160,12 +182,28 @@ export function DashboardPage() {
                   <p className="text-sm text-slate-500">Nenhum chamado categorizado ainda.</p>
                 ) : (
                   <div className="flex flex-col gap-2.5">
-                    {summary.top_categories.map((cat) => (
-                      <div key={cat.name} className="flex items-center justify-between text-[13.5px]">
-                        <span className="text-slate-600">{cat.name}</span>
-                        <span className="font-extrabold text-slate-900">{cat.count}</span>
-                      </div>
-                    ))}
+                    {summary.top_categories.map((cat) => {
+                      const categoryId = CATEGORY_ID_BY_NAME[cat.name];
+                      const row = (
+                        <>
+                          <span className="text-slate-600">{cat.name}</span>
+                          <span className="font-extrabold text-slate-900">{cat.count}</span>
+                        </>
+                      );
+                      return categoryId ? (
+                        <Link
+                          key={cat.name}
+                          to={`/fila?category=${categoryId}`}
+                          className="flex items-center justify-between rounded-lg px-1 py-0.5 text-[13.5px] hover:bg-slate-50"
+                        >
+                          {row}
+                        </Link>
+                      ) : (
+                        <div key={cat.name} className="flex items-center justify-between px-1 py-0.5 text-[13.5px]">
+                          {row}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -181,6 +219,7 @@ export function DashboardPage() {
                 iconBg="bg-crit-tint"
                 iconColor="text-crit"
                 label="SLA estourado"
+                linkTo={summary.sla.breached > 0 ? "/fila?sla=breached" : undefined}
               >
                 {summary.sla.tracked_total === 0 ? (
                   <p className="text-sm text-slate-500">Nenhum chamado com SLA calculado ainda.</p>

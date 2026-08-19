@@ -18,7 +18,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Custom visual identity applied across all 4 screens — blue sidebar, Plus Jakarta Sans typeface, priority/status badges (design process documented in `CLAUDE.md`)
 ✅ Ticket detail screen — technician can assign, change status/priority/category, and log history entries, straight from the UI
 ✅ Ticket tracking (end user) + KB search (technician) — close the design doc's last remaining gaps (§2.1/§2.2)
-🚧 Phase 5 (Navigation & Discovery) in progress — filters (status, priority, category, technician) + text search on the technician queue already done and tested
+🚧 Phase 5 (Navigation & Discovery) in progress — queue filters/search and a clickable dashboard (metrics become links to an already-filtered queue) already done and tested
 
 ---
 
@@ -51,7 +51,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
   - [x] Manager dashboard
 - [ ] Phase 5 — Navigation & Discovery
   - [x] Filters (status, priority, category, technician) + text search on the technician queue
-  - [ ] Clickable dashboard (metrics become links to an already-filtered queue)
+  - [x] Clickable dashboard (metrics become links to an already-filtered queue)
   - [ ] Responsive (Tailwind breakpoints across all 4 screens)
 - [ ] Phase 6 (future) — CMDB + Problem Management (ITIL alignment)
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
@@ -159,7 +159,7 @@ GET    /health
 POST   /auth/login                  → login (email + password) → JWT
 GET    /auth/me                     → authenticated user's data (requires Bearer token)
 POST   /tickets                     → creates a ticket (AI triage runs automatically) — requires login
-GET    /tickets                     → list (filters: status, priority, category_id, assignee_id, requester_id, query) — requires login
+GET    /tickets                     → list (filters: status, priority, category_id, assignee_id, requester_id, query, sla=breached) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
 POST   /tickets/{id}/interactions   → logs a history entry on the ticket — requires login
@@ -241,6 +241,11 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - `GET /tickets` gained `category_id` and `query` (case-insensitive substring search on title/description), added to the filters that already existed (`status`, `priority`, `assignee_id`, `requester_id`).
 - The technician queue got a filter bar (status, priority, category, technician) plus text search, with state persisted in the URL (`?status=&priority=&category=&assignee=&q=`) — the filtered view is copy/paste-able as a link.
 - With no filter active, the queue behaves exactly as before (open/in-progress tickets, split into "My tickets" / "General queue — unassigned"). With any filter or search active, it switches to a single "Filtered results" list, which can cut across both groups (e.g. `status=resolved`).
+
+### Clickable dashboard (Phase 5 — Navigation & Discovery)
+
+- `GET /tickets` gained `sla=breached` — the same breach definition used by `GET /dashboard/summary.sla` (deadline in the past + status still open).
+- On the manager dashboard, every metric now links to an already-filtered queue: the status pills (`Aberto`, `Em andamento`...) link to `/fila?status=`, each entry under "Top categories" links to `/fila?category=`, and the "SLA breached" card links to `/fila?sla=breached` (only when there's at least one breached ticket — no dead link).
 
 ---
 

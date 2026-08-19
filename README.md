@@ -18,7 +18,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Identidade visual própria aplicada nas 4 telas — sidebar azul, tipografia Plus Jakarta Sans, badges por prioridade/status (processo de design documentado no `CLAUDE.md`)
 ✅ Tela de detalhe do chamado — técnico consegue atribuir, mudar status/prioridade/categoria e registrar histórico, direto pela UI
 ✅ Acompanhamento do chamado (usuário final) + busca de KB (técnico) — fecham os últimos gaps do design doc (§2.1/§2.2)
-🚧 Fase 5 (Navegação e Descoberta) em andamento — filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico já concluídos e testados
+🚧 Fase 5 (Navegação e Descoberta) em andamento — filtros + busca na fila e dashboard clicável (métricas viram links pra fila já filtrada) já concluídos e testados
 
 ---
 
@@ -51,7 +51,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
   - [x] Dashboard do gestor
 - [ ] Fase 5 — Navegação e Descoberta
   - [x] Filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico
-  - [ ] Dashboard clicável (métricas viram links pra fila já filtrada)
+  - [x] Dashboard clicável (métricas viram links pra fila já filtrada)
   - [ ] Responsivo (breakpoints Tailwind nas 4 telas)
 - [ ] Fase 6 (futura) — CMDB + Problem Management (alinhamento ITIL)
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
@@ -159,7 +159,7 @@ GET    /health
 POST   /auth/login                  → login (email + senha) → JWT
 GET    /auth/me                     → dados do usuário autenticado (requer Bearer token)
 POST   /tickets                     → cria chamado (triagem por IA roda automaticamente) — requer login
-GET    /tickets                     → lista (filtros: status, priority, category_id, assignee_id, requester_id, query) — requer login
+GET    /tickets                     → lista (filtros: status, priority, category_id, assignee_id, requester_id, query, sla=breached) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
 POST   /tickets/{id}/interactions   → registra uma entrada de histórico no chamado — requer login
@@ -241,6 +241,11 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - `GET /tickets` ganhou `category_id` e `query` (busca por texto em título/descrição, substring case-insensitive), somando-se aos filtros já existentes (`status`, `priority`, `assignee_id`, `requester_id`).
 - A fila do técnico ganhou uma barra de filtros (status, prioridade, categoria, técnico) + busca por texto, com o estado persistido na URL (`?status=&priority=&category=&assignee=&q=`) — dá pra copiar/colar o link já filtrado.
 - Sem filtro ativo, a fila continua exatamente como antes (chamados abertos/em andamento, divididos em "Meus chamados" / "Fila geral — não atribuídos"). Com qualquer filtro ou busca ativa, vira uma lista única "Resultados filtrados", que pode cruzar as duas divisões (ex.: `status=resolved`).
+
+### Dashboard clicável (Fase 5 — Navegação e Descoberta)
+
+- `GET /tickets` ganhou `sla=breached` — mesma definição de estouro usada em `GET /dashboard/summary.sla` (prazo no passado + status ainda aberto).
+- No dashboard do gestor, cada métrica vira link pra fila já filtrada: os pills de status (`Aberto`, `Em andamento`...) levam pra `/fila?status=`, cada categoria em "Top categorias" leva pra `/fila?category=`, e o card "SLA estourado" leva pra `/fila?sla=breached` (só quando há chamado estourado — sem link morto).
 
 ---
 

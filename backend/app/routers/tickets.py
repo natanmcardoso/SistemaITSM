@@ -6,6 +6,7 @@ estes endpoints, sem restrição por role: usuário final cria os próprios
 chamados, técnico gerencia a fila.
 """
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,13 +15,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import Interaction, Ticket, User
+from app.models import TICKET_STATUSES, Interaction, Ticket, User
 from app.schemas import InteractionCreate, InteractionOut, TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
 from app.security import get_current_user
 from app.services.sla import compute_sla_due_at
 from app.services.triage import triage_ticket
 
 router = APIRouter(prefix="/tickets", tags=["tickets"], dependencies=[Depends(get_current_user)])
+
+# Mesma definição de "estourado" usada em GET /dashboard/summary.sla
+# (app/routers/dashboard.py) — chamado com prazo calculado, no passado, e
+# ainda não resolvido/fechado. Reaproveitada aqui pra o link "SLA estourado"
+# do dashboard (Fase 5) cair numa fila já filtrada de verdade.
+_OPEN_STATUSES = [s for s in TICKET_STATUSES if s not in ("resolved", "closed")]
 
 
 @router.post("", response_model=TicketOut, status_code=201)
@@ -91,11 +98,14 @@ def list_tickets(
     assignee_id: Optional[uuid.UUID] = Query(None),
     requester_id: Optional[uuid.UUID] = Query(None),
     query: Optional[str] = Query(None),
+    sla: Optional[str] = Query(None, description="Único valor aceito: 'breached'"),
     db: Session = Depends(get_db),
 ):
-    # Fase 5 (Navegação e Descoberta): category_id e query (busca por texto em
-    # título/descrição) somam-se aos filtros já existentes — mesmo padrão de
-    # busca substring case-insensitive usado em kb-articles?query=.
+    # Fase 5 (Navegação e Descoberta): category_id, query (busca por texto em
+    # título/descrição) e sla=breached somam-se aos filtros já existentes —
+    # query segue o mesmo padrão de busca substring case-insensitive usado em
+    # kb-articles?query=; sla=breached alimenta o link "SLA estourado" do
+    # dashboard.
     q = db.query(Ticket)
     if status is not None:
         q = q.filter(Ticket.status == status)
@@ -110,6 +120,12 @@ def list_tickets(
     if query:
         term = f"%{query}%"
         q = q.filter(or_(Ticket.title.ilike(term), Ticket.description.ilike(term)))
+    if sla == "breached":
+        q = q.filter(
+            Ticket.sla_due_at.isnot(None),
+            Ticket.sla_due_at < datetime.now(timezone.utc),
+            Ticket.status.in_(_OPEN_STATUSES),
+        )
     return q.order_by(Ticket.created_at.desc()).all()
 
 
