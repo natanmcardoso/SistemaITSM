@@ -1,4 +1,13 @@
-import type { DashboardSummary, KBArticleOut, TicketCreate, TicketOut, TokenResponse } from "./types";
+import type {
+  DashboardSummary,
+  InteractionOut,
+  KBArticleOut,
+  TicketCreate,
+  TicketDetailOut,
+  TicketOut,
+  TicketUpdate,
+  TokenResponse,
+} from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -57,6 +66,22 @@ export function getKbArticlesByCategory(token: string, categoryId: string): Prom
 
 export function resolveByUser(token: string, ticketId: string): Promise<TicketOut> {
   return request<TicketOut>(`/tickets/${ticketId}/resolve-by-user`, { method: "POST" }, token);
+}
+
+export function getTicketDetail(token: string, ticketId: string): Promise<TicketDetailOut> {
+  return request<TicketDetailOut>(`/tickets/${ticketId}`, { method: "GET" }, token);
+}
+
+export function updateTicket(token: string, ticketId: string, payload: TicketUpdate): Promise<TicketOut> {
+  return request<TicketOut>(`/tickets/${ticketId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+}
+
+export function addInteraction(token: string, ticketId: string, content: string): Promise<InteractionOut> {
+  return request<InteractionOut>(
+    `/tickets/${ticketId}/interactions`,
+    { method: "POST", body: JSON.stringify({ content }) },
+    token,
+  );
 }
 
 export { ApiError };

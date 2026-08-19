@@ -33,7 +33,7 @@ function sortByPriority(tickets: TicketOut[]): TicketOut[] {
   });
 }
 
-function TicketTable({ tickets }: { tickets: TicketOut[] }) {
+function TicketTable({ tickets, onRowClick }: { tickets: TicketOut[]; onRowClick: (id: string) => void }) {
   if (tickets.length === 0) {
     return <p className="py-6 text-sm text-slate-500">Nenhum chamado aqui no momento.</p>;
   }
@@ -55,7 +55,11 @@ function TicketTable({ tickets }: { tickets: TicketOut[] }) {
             const reclassified =
               ticket.ai_suggested_priority !== null && ticket.ai_suggested_priority !== ticket.priority;
             return (
-              <tr key={ticket.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+              <tr
+                key={ticket.id}
+                onClick={() => onRowClick(ticket.id)}
+                className="cursor-pointer border-t border-slate-100 hover:bg-slate-50/70"
+              >
                 <td className="px-4 py-3.5 font-bold text-slate-900">{ticket.title}</td>
                 <td className="px-4 py-3.5 text-slate-600">
                   {ticket.category_id ? CATEGORY_NAMES[ticket.category_id] ?? "—" : "—"}
@@ -155,7 +159,7 @@ export function QueuePage() {
               <span className="text-xs font-bold text-slate-400">{mine.length}</span>
             </div>
             <div className="mb-6">
-              <TicketTable tickets={mine} />
+              <TicketTable tickets={mine} onRowClick={(id) => navigate(`/tickets/${id}`)} />
             </div>
 
             <div className="mb-2.5 flex items-center justify-between">
@@ -164,7 +168,7 @@ export function QueuePage() {
               </span>
               <span className="text-xs font-bold text-slate-400">{unassigned.length}</span>
             </div>
-            <TicketTable tickets={unassigned} />
+            <TicketTable tickets={unassigned} onRowClick={(id) => navigate(`/tickets/${id}`)} />
           </>
         )}
       </div>

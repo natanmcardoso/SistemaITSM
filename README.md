@@ -16,6 +16,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 4.0 concluída e testada — autenticação (login + JWT), pré-requisito da Fase 4 (frontend)
 ✅ Fase 4 (frontend) concluída e testada — fila do técnico, novo chamado e dashboard do gestor, incluindo as sub-fases de SLA e resolve-by-user: as 4 métricas centrais do design doc (§2.3) têm dado real no dashboard
 ✅ Identidade visual própria aplicada nas 4 telas — sidebar azul, tipografia Plus Jakarta Sans, badges por prioridade/status (processo de design documentado no `CLAUDE.md`)
+✅ Tela de detalhe do chamado — técnico consegue atribuir, mudar status/prioridade/categoria e registrar histórico, direto pela UI
 
 ---
 
@@ -106,6 +107,10 @@ python test_phase4_sla.py
 # próprio chamado via sugestão da IA), via API real, depois limpa
 python test_phase4_resolve_by_user.py
 
+# roda o teste do histórico de interações (tela de detalhe do chamado),
+# via API real, depois limpa
+python test_phase4_interactions.py
+
 # popula o banco com dados de dev persistentes (usuários, categorias,
 # sla_rules, kb_articles, chamados de exemplo) — necessário pras 3 telas do
 # frontend terem o que mostrar. Idempotente, pode rodar de novo sem
@@ -145,6 +150,7 @@ POST   /tickets                     → cria chamado (triagem por IA roda automa
 GET    /tickets                     → lista (filtros: status, priority, assignee_id) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
+POST   /tickets/{id}/interactions   → registra uma entrada de histórico no chamado — requer login
 POST   /tickets/{id}/resolve-by-user → usuário fecha o próprio chamado via sugestão da IA — requer login (só o solicitante)
 GET    /kb-articles                 → lista artigos da KB (filtro opcional ?category_id=) — requer login
 GET    /kb-articles/{id}            → detalhe de um artigo — requer login
@@ -172,6 +178,7 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - A fila (`GET /tickets`) é dividida em "Meus chamados" (atribuídos ao técnico logado) e "Fila geral — não atribuídos", ordenada por prioridade sugerida pela IA.
 - Cada linha mostra a prioridade final e, quando o técnico reclassificou, a sugestão original da IA ao lado — visualização direta do dado que alimenta a métrica de acerto da IA (design-itsm-mvp.md §5).
 - Backend com `CORSMiddleware` liberando `http://localhost:5173` (único origin de dev permitido).
+- Cada linha da fila é clicável e abre a tela de detalhe do chamado (ver seção própria abaixo).
 
 ### Novo chamado (Fase 4, tela 2/3)
 
@@ -198,6 +205,18 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - `GET /kb-articles?category_id=` (também cobre `GET /kb-articles/{id}`) lista os artigos da categoria do chamado.
 - `POST /tickets/{id}/resolve-by-user`: só o `requester_id` do chamado pode chamar (403 senão) e só enquanto `status == "open"` (400 senão) — seta `status=resolved` + `resolved_by_ai=true`.
 - Dashboard ganhou o card `% resolvido pela IA, sem técnico` em destaque, no topo da tela.
+
+### Redesign visual (Fase 4, pós resolve-by-user)
+
+- As 4 telas (login, fila, novo chamado, dashboard) ganharam identidade visual própria — sidebar azul, tipografia Plus Jakarta Sans, badges por prioridade/status. Puramente visual, sem mudança de lógica.
+- Processo documentado no `CLAUDE.md`: partiu de prints de referência trazidos pelo usuário, validados com um canvas de design (2 rodadas — uma direção "parecida com a referência" e depois 3 direções bem diferentes) antes de virar código de verdade.
+
+### Tela de detalhe do chamado (Fase 4, pós redesign visual)
+
+- Fecha o maior gap funcional que restava: até aqui, o frontend só lia dados — nunca chamava `PATCH /tickets/{id}` nem criava uma interação, mesmo esses endpoints já existindo.
+- Nova rota `/tickets/{id}` (linhas da fila viraram clicáveis). O técnico pode: atribuir o chamado a si mesmo, trocar status/prioridade/categoria (um único `PATCH`), e registrar atualizações no histórico (`POST /tickets/{id}/interactions`).
+- Reatribuição só "pra mim" (sem select de outro técnico — não há `GET /users`). Interações são só texto, sem editar/excluir/anexo.
+- **Ainda em aberto:** acompanhamento do chamado pelo usuário final (§2.1) e busca de KB pelo técnico (§2.2) — a URL de detalhe funciona pra qualquer usuário logado, mas não há uma versão dedicada nem link de entrada pra essas personas ainda.
 
 ---
 

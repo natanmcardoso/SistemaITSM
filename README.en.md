@@ -16,6 +16,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 4.0 completed and tested — authentication (login + JWT), a prerequisite for Phase 4 (frontend)
 ✅ Phase 4 (frontend) completed and tested — technician queue, new ticket, and manager dashboard, including the SLA and resolve-by-user sub-phases: all 4 headline metrics from the design doc (§2.3) now have real data
 ✅ Custom visual identity applied across all 4 screens — blue sidebar, Plus Jakarta Sans typeface, priority/status badges (design process documented in `CLAUDE.md`)
+✅ Ticket detail screen — technician can assign, change status/priority/category, and log history entries, straight from the UI
 
 ---
 
@@ -106,6 +107,10 @@ python test_phase4_sla.py
 # ticket via the AI suggestion), via the real API, then cleans up
 python test_phase4_resolve_by_user.py
 
+# runs the interaction-history test (ticket detail screen), via the real
+# API, then cleans up
+python test_phase4_interactions.py
+
 # seeds the database with persistent dev data (users, categories, sla_rules,
 # kb_articles, sample tickets) — needed so the frontend's 3 screens have
 # something to show. Idempotent, safe to re-run. Password for every seeded
@@ -145,6 +150,7 @@ POST   /tickets                     → creates a ticket (AI triage runs automat
 GET    /tickets                     → list (filters: status, priority, assignee_id) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
+POST   /tickets/{id}/interactions   → logs a history entry on the ticket — requires login
 POST   /tickets/{id}/resolve-by-user → user closes their own ticket via the AI suggestion — requires login (requester only)
 GET    /kb-articles                 → lists KB articles (optional ?category_id= filter) — requires login
 GET    /kb-articles/{id}            → detail for one article — requires login
@@ -172,6 +178,7 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - The queue (`GET /tickets`) is split into "My tickets" (assigned to the logged-in technician) and "General queue — unassigned", sorted by AI-suggested priority.
 - Each row shows the final priority and, when the technician reclassified it, the AI's original suggestion alongside it — a direct view of the data that feeds the AI-accuracy metric (design-itsm-mvp.md §5).
 - Backend has `CORSMiddleware` allowing `http://localhost:5173` (the only dev origin permitted).
+- Each queue row is clickable and opens the ticket detail screen (see the dedicated section below).
 
 ### New ticket (Phase 4, screen 2/3)
 
@@ -198,6 +205,18 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - `GET /kb-articles?category_id=` (also covers `GET /kb-articles/{id}`) lists the articles for the ticket's category.
 - `POST /tickets/{id}/resolve-by-user`: only the ticket's `requester_id` can call it (403 otherwise) and only while `status == "open"` (400 otherwise) — sets `status=resolved` + `resolved_by_ai=true`.
 - The dashboard gained a highlighted `% resolved by AI, no technician` card, at the top of the page.
+
+### Visual redesign (Phase 4, after resolve-by-user)
+
+- All 4 screens (login, queue, new ticket, dashboard) got their own visual identity — blue sidebar, Plus Jakarta Sans typeface, priority/status badges. Purely visual, no logic changes.
+- Process documented in `CLAUDE.md`: started from reference screenshots the user brought in, validated through a design canvas (2 rounds — one direction that looked "too close to the reference," then 3 genuinely different directions) before becoming real code.
+
+### Ticket detail screen (Phase 4, after visual redesign)
+
+- Closes the biggest remaining functional gap: until now, the frontend only read data — it never called `PATCH /tickets/{id}` or created an interaction, even though those endpoints already existed.
+- New `/tickets/{id}` route (queue rows became clickable). The technician can: assign the ticket to themselves, change status/priority/category (a single `PATCH`), and log updates to the history (`POST /tickets/{id}/interactions`).
+- Reassignment is "to myself" only (no picker for other technicians — there's no `GET /users`). Interactions are plain text only, no edit/delete/attachments.
+- **Still open:** end-user ticket tracking (§2.1) and KB search for technicians (§2.2) — the detail URL works for any logged-in user, but there's no dedicated view or entry point for those personas yet.
 
 ---
 

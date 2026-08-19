@@ -13,8 +13,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import Ticket, User
-from app.schemas import TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
+from app.models import Interaction, Ticket, User
+from app.schemas import InteractionCreate, InteractionOut, TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
 from app.security import get_current_user
 from app.services.sla import compute_sla_due_at
 from app.services.triage import triage_ticket
@@ -137,3 +137,25 @@ def update_ticket(ticket_id: uuid.UUID, payload: TicketUpdate, db: Session = Dep
         ) from exc
     db.refresh(ticket)
     return ticket
+
+
+@router.post("/{ticket_id}/interactions", response_model=InteractionOut, status_code=201)
+def create_interaction(
+    ticket_id: uuid.UUID,
+    payload: InteractionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Registra uma entrada de histórico no chamado (tela de detalhe, Fase 4).
+
+    Sem restrição de role — mesmo padrão dos outros endpoints de tickets.
+    """
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket não encontrado")
+
+    interaction = Interaction(ticket_id=ticket.id, author_id=current_user.id, content=payload.content)
+    db.add(interaction)
+    db.commit()
+    db.refresh(interaction)
+    return interaction

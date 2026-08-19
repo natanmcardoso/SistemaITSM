@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 TicketStatus = Literal["open", "in_progress", "resolved", "closed"]
 TicketPriority = Literal["low", "medium", "high", "critical"]
@@ -38,6 +38,10 @@ class InteractionOut(BaseModel):
     author_id: uuid.UUID
     content: str
     created_at: datetime
+
+
+class InteractionCreate(BaseModel):
+    content: str = Field(min_length=1)
 
 
 class TicketCreate(BaseModel):

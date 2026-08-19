@@ -40,6 +40,25 @@ export interface TicketOut {
   updated_at: string;
 }
 
+export interface InteractionOut {
+  id: string;
+  ticket_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface TicketDetailOut extends TicketOut {
+  interactions: InteractionOut[];
+}
+
+export interface TicketUpdate {
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  category_id?: string;
+  assignee_id?: string;
+}
+
 export interface CategoryCount {
   name: string;
   count: number;

@@ -6,6 +6,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NewTicketPage } from "./pages/NewTicketPage";
 import { QueuePage } from "./pages/QueuePage";
+import { TicketDetailPage } from "./pages/TicketDetailPage";
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { auth } = useAuth();
@@ -35,6 +36,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <NewTicketPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tickets/:ticketId"
+        element={
+          <RequireAuth>
+            <TicketDetailPage />
           </RequireAuth>
         }
       />
