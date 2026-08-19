@@ -14,8 +14,8 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 2 completed and tested — core `tickets` endpoints (CRUD, no AI)
 ✅ Phase 3 completed and tested — AI triage wired into ticket creation (mock mode by default; live mode with Anthropic when `ANTHROPIC_API_KEY` is set)
 ✅ Phase 4.0 completed and tested — authentication (login + JWT), a prerequisite for Phase 4 (frontend)
-🚧 Phase 4 (frontend) in progress — screen 1/3 completed and tested: technician queue (login + AI-triaged listing)
-🚧 Next: new ticket screen
+🚧 Phase 4 (frontend) in progress — screen 2/3 completed and tested: new ticket (end-user flow, creates an AI-triaged ticket)
+🚧 Next: manager dashboard
 
 ---
 
@@ -44,7 +44,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 - [x] Phase 4.0 — Authentication (login + JWT)
 - [ ] Phase 4 — Frontend (technician queue → new ticket → manager dashboard)
   - [x] Technician queue
-  - [ ] New ticket
+  - [x] New ticket
   - [ ] Manager dashboard
 - [ ] Phase 5 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
@@ -110,8 +110,10 @@ npm install
 cp .env.example .env
 
 npm run dev
-# http://localhost:5173/login — pick a technician (password demo1234 is
-# filled in automatically) and see the queue load with the seeded tickets above
+# http://localhost:5173/login — pick an account (technician or end user;
+# password demo1234 is filled in automatically)
+# - technician lands on the queue (seeded tickets)
+# - end user lands directly on the new ticket screen
 ```
 
 > No `GET /users`/`GET /categories` endpoint in this phase (design decision) —
@@ -152,6 +154,12 @@ PATCH  /tickets/{id}                → updates status/priority/category_id/assi
 - The queue (`GET /tickets`) is split into "My tickets" (assigned to the logged-in technician) and "General queue — unassigned", sorted by AI-suggested priority.
 - Each row shows the final priority and, when the technician reclassified it, the AI's original suggestion alongside it — a direct view of the data that feeds the AI-accuracy metric (design-itsm-mvp.md §5).
 - Backend has `CORSMiddleware` allowing `http://localhost:5173` (the only dev origin permitted).
+
+### New ticket (Phase 4, screen 2/3)
+
+- End-user flow (design-itsm-mvp.md §2.1): a form with title + description, `POST /tickets` sends the logged-in user's `requester_id` and triggers AI triage automatically.
+- The confirmation screen shows the category and priority the AI suggested at creation time — the KB article suggestion + "resolved/not resolved" step is left for a future phase, since the `kb_articles` and `resolve-by-user` endpoints don't exist in the backend yet.
+- Login extended: the same account picker used on the queue screen now also lists the seeded end users (João Pereira, Marina Alves); the post-login destination is decided by `role` (`end_user` → `/novo-chamado`, `technician` → `/fila`).
 
 ---
 

@@ -1,4 +1,4 @@
-import type { TicketOut, TokenResponse } from "./types";
+import type { TicketCreate, TicketOut, TokenResponse } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -40,6 +40,10 @@ export function listTickets(
   }
   const query = params.toString() ? `?${params.toString()}` : "";
   return request<TicketOut[]>(`/tickets${query}`, { method: "GET" }, token);
+}
+
+export function createTicket(token: string, payload: TicketCreate): Promise<TicketOut> {
+  return request<TicketOut>("/tickets", { method: "POST", body: JSON.stringify(payload) }, token);
 }
 
 export { ApiError };

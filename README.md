@@ -14,8 +14,8 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
 ✅ Fase 3 concluída e testada — triagem por IA plugada na criação de chamados (modo mock por padrão; live com Anthropic quando `ANTHROPIC_API_KEY` estiver configurada)
 ✅ Fase 4.0 concluída e testada — autenticação (login + JWT), pré-requisito da Fase 4 (frontend)
-🚧 Fase 4 (frontend) em andamento — tela 1/3 concluída e testada: fila do técnico (login + listagem já triada pela IA)
-🚧 Próxima: tela de novo chamado
+🚧 Fase 4 (frontend) em andamento — tela 2/3 concluída e testada: novo chamado (fluxo do usuário final, cria chamado já triado pela IA)
+🚧 Próxima: dashboard do gestor
 
 ---
 
@@ -44,7 +44,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 - [x] Fase 4.0 — Autenticação (login + JWT)
 - [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
   - [x] Fila do técnico
-  - [ ] Novo chamado
+  - [x] Novo chamado
   - [ ] Dashboard do gestor
 - [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
@@ -110,8 +110,10 @@ npm install
 cp .env.example .env
 
 npm run dev
-# http://localhost:5173/login — escolha um técnico (senha demo1234 preenchida
-# automaticamente) e veja a fila carregada com os chamados semeados acima
+# http://localhost:5173/login — escolha uma conta (técnico ou usuário final;
+# senha demo1234 preenchida automaticamente)
+# - técnico cai na fila (chamados semeados)
+# - usuário final cai direto na tela de novo chamado
 ```
 
 > Sem endpoint `GET /users`/`GET /categories` nesta fase (decisão do design) — os
@@ -152,6 +154,12 @@ PATCH  /tickets/{id}                → atualiza status/priority/category_id/ass
 - A fila (`GET /tickets`) é dividida em "Meus chamados" (atribuídos ao técnico logado) e "Fila geral — não atribuídos", ordenada por prioridade sugerida pela IA.
 - Cada linha mostra a prioridade final e, quando o técnico reclassificou, a sugestão original da IA ao lado — visualização direta do dado que alimenta a métrica de acerto da IA (design-itsm-mvp.md §5).
 - Backend com `CORSMiddleware` liberando `http://localhost:5173` (único origin de dev permitido).
+
+### Novo chamado (Fase 4, tela 2/3)
+
+- Fluxo do usuário final (design-itsm-mvp.md §2.1): formulário com título + descrição, `POST /tickets` envia `requester_id` do usuário logado e dispara a triagem por IA automaticamente.
+- Tela de confirmação mostra a categoria e a prioridade que a IA sugeriu na criação — a etapa de sugestão de artigo da KB + "resolveu/não resolveu" fica para uma fase futura, já que os endpoints de `kb_articles` e `resolve-by-user` ainda não existem no backend.
+- Login estendido: o mesmo seletor de contas da tela de fila agora também lista os usuários finais semeados (João Pereira, Marina Alves); o destino pós-login é decidido pela `role` (`end_user` → `/novo-chamado`, `technician` → `/fila`).
 
 ---
 

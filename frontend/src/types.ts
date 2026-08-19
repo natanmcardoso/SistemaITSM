@@ -17,6 +17,12 @@ export interface TokenResponse {
   user: UserOut;
 }
 
+export interface TicketCreate {
+  title: string;
+  description: string;
+  requester_id: string;
+}
+
 export interface TicketOut {
   id: string;
   title: string;
