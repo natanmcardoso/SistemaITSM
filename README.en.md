@@ -18,6 +18,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Custom visual identity applied across all 4 screens — blue sidebar, Plus Jakarta Sans typeface, priority/status badges (design process documented in `CLAUDE.md`)
 ✅ Ticket detail screen — technician can assign, change status/priority/category, and log history entries, straight from the UI
 ✅ Ticket tracking (end user) + KB search (technician) — close the design doc's last remaining gaps (§2.1/§2.2)
+🚧 Phase 5 (Navigation & Discovery) in progress — filters (status, priority, category, technician) + text search on the technician queue already done and tested
 
 ---
 
@@ -48,7 +49,12 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
   - [x] Technician queue
   - [x] New ticket
   - [x] Manager dashboard
-- [ ] Phase 5 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
+- [ ] Phase 5 — Navigation & Discovery
+  - [x] Filters (status, priority, category, technician) + text search on the technician queue
+  - [ ] Clickable dashboard (metrics become links to an already-filtered queue)
+  - [ ] Responsive (Tailwind breakpoints across all 4 screens)
+- [ ] Phase 6 (future) — CMDB + Problem Management (ITIL alignment)
+- [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
 
@@ -153,7 +159,7 @@ GET    /health
 POST   /auth/login                  → login (email + password) → JWT
 GET    /auth/me                     → authenticated user's data (requires Bearer token)
 POST   /tickets                     → creates a ticket (AI triage runs automatically) — requires login
-GET    /tickets                     → list (filters: status, priority, assignee_id, requester_id) — requires login
+GET    /tickets                     → list (filters: status, priority, category_id, assignee_id, requester_id, query) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
 POST   /tickets/{id}/interactions   → logs a history entry on the ticket — requires login
@@ -229,6 +235,12 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - **KB search for technicians (§2.2):** new `/base-conhecimento` screen — free-text search (`GET /kb-articles?query=`, case-insensitive substring on title or content) plus a category filter. The technician's sidebar now has both real items (Fila de chamados + Base de conhecimento).
 - `TicketDetailPage` now serves both personas from the same component: technicians see the sidebar + action panel; end users see a read-only view (info + AI suggestion + history), with no sidebar and no action panel.
 - With this, there's no known gap left from the original design doc (§2).
+
+### Queue filters and search (Phase 5 — Navigation & Discovery)
+
+- `GET /tickets` gained `category_id` and `query` (case-insensitive substring search on title/description), added to the filters that already existed (`status`, `priority`, `assignee_id`, `requester_id`).
+- The technician queue got a filter bar (status, priority, category, technician) plus text search, with state persisted in the URL (`?status=&priority=&category=&assignee=&q=`) — the filtered view is copy/paste-able as a link.
+- With no filter active, the queue behaves exactly as before (open/in-progress tickets, split into "My tickets" / "General queue — unassigned"). With any filter or search active, it switches to a single "Filtered results" list, which can cut across both groups (e.g. `status=resolved`).
 
 ---
 

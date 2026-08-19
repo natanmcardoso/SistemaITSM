@@ -38,3 +38,16 @@ export const USER_NAMES: Record<string, string> = {
   "08d7203b-517c-4988-ad51-2ad3ea3f4aa4": "João Pereira",
   "867206a1-db73-42e1-900e-b5b04d2ad40e": "Marina Alves",
 };
+
+// Subconjunto de USER_NAMES só com os técnicos — usado no filtro "técnico" da
+// fila (Fase 5). Mesma decisão de espelho manual: sem GET /users, a lista é
+// hardcoded a partir dos mesmos IDs já semeados.
+export interface TechnicianOption {
+  id: string;
+  name: string;
+}
+
+export const TECHNICIANS: TechnicianOption[] = [
+  { id: "06849518-927d-458a-ac83-eff049eb82b0", name: "Carla Mendes" },
+  { id: "98bb6abe-15ca-4dda-a8d2-3f03c566fc18", name: "Rafael Souza" },
+];

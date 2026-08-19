@@ -9,6 +9,7 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -86,20 +87,30 @@ def resolve_by_user(
 def list_tickets(
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
+    category_id: Optional[uuid.UUID] = Query(None),
     assignee_id: Optional[uuid.UUID] = Query(None),
     requester_id: Optional[uuid.UUID] = Query(None),
+    query: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Ticket)
+    # Fase 5 (Navegação e Descoberta): category_id e query (busca por texto em
+    # título/descrição) somam-se aos filtros já existentes — mesmo padrão de
+    # busca substring case-insensitive usado em kb-articles?query=.
+    q = db.query(Ticket)
     if status is not None:
-        query = query.filter(Ticket.status == status)
+        q = q.filter(Ticket.status == status)
     if priority is not None:
-        query = query.filter(Ticket.priority == priority)
+        q = q.filter(Ticket.priority == priority)
+    if category_id is not None:
+        q = q.filter(Ticket.category_id == category_id)
     if assignee_id is not None:
-        query = query.filter(Ticket.assignee_id == assignee_id)
+        q = q.filter(Ticket.assignee_id == assignee_id)
     if requester_id is not None:
-        query = query.filter(Ticket.requester_id == requester_id)
-    return query.order_by(Ticket.created_at.desc()).all()
+        q = q.filter(Ticket.requester_id == requester_id)
+    if query:
+        term = f"%{query}%"
+        q = q.filter(or_(Ticket.title.ilike(term), Ticket.description.ilike(term)))
+    return q.order_by(Ticket.created_at.desc()).all()
 
 
 @router.get("/{ticket_id}", response_model=TicketDetailOut)

@@ -18,6 +18,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Identidade visual própria aplicada nas 4 telas — sidebar azul, tipografia Plus Jakarta Sans, badges por prioridade/status (processo de design documentado no `CLAUDE.md`)
 ✅ Tela de detalhe do chamado — técnico consegue atribuir, mudar status/prioridade/categoria e registrar histórico, direto pela UI
 ✅ Acompanhamento do chamado (usuário final) + busca de KB (técnico) — fecham os últimos gaps do design doc (§2.1/§2.2)
+🚧 Fase 5 (Navegação e Descoberta) em andamento — filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico já concluídos e testados
 
 ---
 
@@ -48,7 +49,12 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
   - [x] Fila do técnico
   - [x] Novo chamado
   - [x] Dashboard do gestor
-- [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
+- [ ] Fase 5 — Navegação e Descoberta
+  - [x] Filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico
+  - [ ] Dashboard clicável (métricas viram links pra fila já filtrada)
+  - [ ] Responsivo (breakpoints Tailwind nas 4 telas)
+- [ ] Fase 6 (futura) — CMDB + Problem Management (alinhamento ITIL)
+- [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
 
@@ -153,7 +159,7 @@ GET    /health
 POST   /auth/login                  → login (email + senha) → JWT
 GET    /auth/me                     → dados do usuário autenticado (requer Bearer token)
 POST   /tickets                     → cria chamado (triagem por IA roda automaticamente) — requer login
-GET    /tickets                     → lista (filtros: status, priority, assignee_id, requester_id) — requer login
+GET    /tickets                     → lista (filtros: status, priority, category_id, assignee_id, requester_id, query) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
 POST   /tickets/{id}/interactions   → registra uma entrada de histórico no chamado — requer login
@@ -229,6 +235,12 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - **Busca de KB pelo técnico (§2.2):** nova tela `/base-conhecimento` — busca por texto (`GET /kb-articles?query=`, substring case-insensitive em título ou conteúdo) + filtro por categoria. Sidebar do técnico agora tem os dois itens de verdade (Fila de chamados + Base de conhecimento).
 - `TicketDetailPage` passou a servir as 2 personas com o mesmo componente: técnico vê a sidebar + painel de ações; usuário final vê só leitura (info + sugestão da IA + histórico), sem sidebar e sem o painel de ações.
 - Com isso, não há mais gap conhecido do design doc original (§2) em aberto.
+
+### Filtros e busca na fila (Fase 5 — Navegação e Descoberta)
+
+- `GET /tickets` ganhou `category_id` e `query` (busca por texto em título/descrição, substring case-insensitive), somando-se aos filtros já existentes (`status`, `priority`, `assignee_id`, `requester_id`).
+- A fila do técnico ganhou uma barra de filtros (status, prioridade, categoria, técnico) + busca por texto, com o estado persistido na URL (`?status=&priority=&category=&assignee=&q=`) — dá pra copiar/colar o link já filtrado.
+- Sem filtro ativo, a fila continua exatamente como antes (chamados abertos/em andamento, divididos em "Meus chamados" / "Fila geral — não atribuídos"). Com qualquer filtro ou busca ativa, vira uma lista única "Resultados filtrados", que pode cruzar as duas divisões (ex.: `status=resolved`).
 
 ---
 

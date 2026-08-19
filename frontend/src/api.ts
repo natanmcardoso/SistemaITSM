@@ -41,7 +41,14 @@ export function login(email: string, password: string): Promise<TokenResponse> {
 
 export function listTickets(
   token: string,
-  filters: { status?: string; priority?: string; assignee_id?: string; requester_id?: string } = {},
+  filters: {
+    status?: string;
+    priority?: string;
+    category_id?: string;
+    assignee_id?: string;
+    requester_id?: string;
+    query?: string;
+  } = {},
 ): Promise<TicketOut[]> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {

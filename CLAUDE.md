@@ -58,7 +58,22 @@ Documento de referência completo (fluxos, modelo de dados, contrato de API): `d
   - `TicketDetailPage.tsx` passou a servir as 2 personas com o mesmo componente: técnico vê a sidebar + o painel de ações; usuário final vê só leitura (info + sugestão da IA + histórico) num header leve, sem sidebar e sem o painel de ações — controlado por `auth.user.role === "technician"`.
   - A extensão do Claude in Chrome não conectou na hora de fechar esta fase (4 tentativas); foi validada por build limpo + `curl` direto nos endpoints novos, sem fluxo completo no navegador como as fases anteriores. **Verificação visual confirmada depois pelo usuário** (rodou os dois servidores localmente e testou as telas novas) — sem ressalva.
 
-Próximo passo real: a Fase 4 (frontend) está funcionalmente e visualmente fechada — as 4 métricas centrais do design doc (§2.3) com dado real, as 4 telas com o design aprovado, o técnico consegue agir de verdade na fila, e os gaps de acompanhamento (usuário final) e busca de KB (técnico) do design doc estão fechados. Falta decidir: começar a Fase 5 (RMM, fora do escopo do MVP atual) ou revisar/polir o que já existe — não há mais gap conhecido do design doc original em aberto.
+Próximo passo real: a Fase 4 (frontend) está funcionalmente e visualmente fechada — as 4 métricas centrais do design doc (§2.3) com dado real, as 4 telas com o design aprovado, o técnico consegue agir de verdade na fila, e os gaps de acompanhamento (usuário final) e busca de KB (técnico) do design doc estão fechados. Não há mais gap conhecido do design doc original (§2) em aberto.
+
+Três fases novas foram decididas com o usuário (fora do design doc original, evolução pós-MVP) e ficam nesta ordem — começar pela Fase 5:
+
+- 🚧 **Fase 5 — Navegação e Descoberta.** Puramente UX sobre o que já existe, sem schema novo. Escopo:
+  - ✅ Sub-fase 5.1 (backend) — `GET /tickets` ganhou `category_id` e `query` (busca por texto em título/descrição, substring case-insensitive), somando-se aos filtros que já existiam (`status`/`priority`/`assignee_id`/`requester_id`). Testado: `backend/test_phase5_ticket_filters.py` + suíte completa reconfirmada (11 arquivos).
+  - ✅ Sub-fase 5.2 (frontend) — barra de filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico (`frontend/src/pages/QueuePage.tsx`), estado persistido na URL (`?status=&priority=&category=&assignee=&q=`). Sem filtro ativo, o comportamento continua idêntico ao de antes (chamados abertos/em andamento, divididos em "Meus chamados" / "Fila geral — não atribuídos"); qualquer filtro ou busca ativa troca pra uma lista única "Resultados filtrados" (pode cruzar as duas divisões, ex. `status=resolved`). Novo `TECHNICIANS` em `devData.ts` (subconjunto de `USER_NAMES`) alimenta o seletor de técnico — mesmo padrão de espelho manual já usado nesse arquivo. Testado: build limpo + verificação visual do usuário. A extensão do Claude in Chrome não conectou e o Playwright local não tinha Chromium instalado — não rodei o fluxo automatizado desta vez, ficou só com o usuário testando manualmente.
+  - Busca por texto no título/descrição do chamado — ✅ feito na 5.1/5.2 acima.
+  - Dashboard clicável: cada métrica do `/dashboard/summary` (ex: "SLA estourado", "N chamados abertos") vira link pra `/fila` já filtrada (ex: `?sla=breached`, `?status=open`) — depende dos filtros acima existirem primeiro (já existem).
+  - Responsivo: aplicar breakpoints Tailwind nas 4 telas existentes (não é fase isolada de UI nova, é ajuste do que já existe) e tratar como critério de aceite de qualquer tela daqui pra frente.
+  - Fora do escopo desta fase (avaliar depois, menor prioridade): Kanban (arrastar chamado entre status), notificações in-app, anexos em chamados/interações, exportar relatório.
+- ⏳ **Fase 6 — CMDB + Problem Management (alinhamento ITIL).** Duas tabelas novas:
+  - `assets` (`id`, `name`, `type` enum: desktop/notebook/server/printer/network/other, `status` enum: active/maintenance/retired, `owner_id` FK→users nullable, `serial_number` nullable, `created_at`) — `tickets` ganha `asset_id` FK nullable.
+  - `problems` (`id`, `title`, `root_cause` text nullable, `status` enum: investigating/known_error/resolved, `created_at`) — `tickets` ganha `problem_id` FK nullable.
+  - Sem telas de CRUD dedicadas no MVP desta fase — só o dashboard mostrando "N chamados vinculados a este ativo/problema". Ver `design-itsm-mvp.md` para o racional completo (decisão: cobrir bem os ~6-8 práticas ITIL centrais, não as 34+ do framework — escopo de portfólio, não produto comercial).
+- ⏳ **Fase 7 (futura) — RMM próprio** (agente de endpoint, inventário, acesso remoto, patch management) — mantém-se fora de escopo até as fases 5 e 6 fecharem; `asset_id` da Fase 6 já é a ponte de dados pra isso.
 
 Decisões já tomadas para a Fase 4 (não reabrir sem motivo):
 - Frontend: Vite + React + TypeScript + React Router + Tailwind CSS.
@@ -108,7 +123,10 @@ Não pular etapas, não adiantar código de fases futuras, não assumir que "vai
 2. ✅ Endpoints core de `tickets` (CRUD), sem IA ainda → testar: criar/listar/atualizar chamado via API
 3. ✅ Plugar o serviço de triagem por IA (reaproveitando lógica do AIOps Copilot) → testar: chamado novo recebe categoria/prioridade sugerida corretamente
 4. ✅ Autenticação (login + JWT) — sub-fase 4.0, pré-requisito do frontend → testado: login certo/errado, `/auth/me` com/sem token
-5. 🚧 Frontend — fila do técnico → tela de novo chamado → dashboard do gestor, nessa ordem → testar cada tela isoladamente antes de integrar. Ao chegar na fila do técnico, plugar o guard de autenticação (`get_current_user`/`require_role`) nos endpoints de `tickets` que ainda estão abertos.
+5. ✅ Frontend — fila do técnico → tela de novo chamado → dashboard do gestor (+ SLA, resolve-by-user, redesign visual, detalhe do chamado, acompanhamento do usuário final, busca de KB) → todas testadas.
+6. 🚧 Navegação e Descoberta — filtros + busca em `/tickets`, dashboard clicável, responsivo → testar: cada filtro isoladamente, depois o link do dashboard chegando na fila já filtrada, depois breakpoints em pelo menos 2 tamanhos de tela.
+7. ⏳ CMDB + Problem Management — migrations de `assets`/`problems`, `asset_id`/`problem_id` em `tickets` → testar: criar asset/problem, vincular a um chamado, conferir contagem no dashboard.
+8. ⏳ RMM próprio (futura) — fora de escopo até 6 e 7 fecharem.
 
 ---
 
