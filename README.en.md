@@ -14,7 +14,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 2 completed and tested — core `tickets` endpoints (CRUD, no AI)
 ✅ Phase 3 completed and tested — AI triage wired into ticket creation (mock mode by default; live mode with Anthropic when `ANTHROPIC_API_KEY` is set)
 ✅ Phase 4.0 completed and tested — authentication (login + JWT), a prerequisite for Phase 4 (frontend)
-✅ Phase 4 (frontend) completed and tested — technician queue, new ticket, and manager dashboard
+✅ Phase 4 (frontend) completed and tested — technician queue, new ticket, and manager dashboard, including the SLA and resolve-by-user sub-phases: all 4 headline metrics from the design doc (§2.3) now have real data
 
 ---
 
@@ -101,9 +101,14 @@ python test_phase4_dashboard.py
 # dashboard), via the real API, then cleans up
 python test_phase4_sla.py
 
-# seeds the database with persistent dev data (technicians, categories, sample
-# tickets) — needed so the technician queue screen has something to show.
-# Idempotent, safe to re-run. Password for every seeded account: demo1234
+# runs the resolve-by-user test (KB by category + user closing their own
+# ticket via the AI suggestion), via the real API, then cleans up
+python test_phase4_resolve_by_user.py
+
+# seeds the database with persistent dev data (users, categories, sla_rules,
+# kb_articles, sample tickets) — needed so the frontend's 3 screens have
+# something to show. Idempotent, safe to re-run. Password for every seeded
+# account: demo1234
 python scripts/seed_dev_data.py
 ```
 
@@ -139,6 +144,9 @@ POST   /tickets                     → creates a ticket (AI triage runs automat
 GET    /tickets                     → list (filters: status, priority, assignee_id) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
+POST   /tickets/{id}/resolve-by-user → user closes their own ticket via the AI suggestion — requires login (requester only)
+GET    /kb-articles                 → lists KB articles (optional ?category_id= filter) — requires login
+GET    /kb-articles/{id}            → detail for one article — requires login
 GET    /dashboard/summary           → manager dashboard metrics — requires login with role=manager
 ```
 
@@ -167,13 +175,12 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 ### New ticket (Phase 4, screen 2/3)
 
 - End-user flow (design-itsm-mvp.md §2.1): a form with title + description, `POST /tickets` sends the logged-in user's `requester_id` and triggers AI triage automatically.
-- The confirmation screen shows the category and priority the AI suggested at creation time — the KB article suggestion + "resolved/not resolved" step is left for a future phase, since the `kb_articles` and `resolve-by-user` endpoints don't exist in the backend yet.
+- After creation, fetches `GET /kb-articles?category_id=` for the ticket's final category; if an article is found, shows the suggestion with "Resolved, close it" (calls `resolve-by-user`) / "Didn't resolve it" — see the dedicated section below. No article for that category, and it skips straight to the confirmation (category/priority the AI suggested).
 - Login extended: the same account picker used on the queue screen now also lists the seeded end users (João Pereira, Marina Alves); the post-login destination is decided by `role` (`end_user` → `/novo-chamado`, `technician` → `/fila`).
 
 ### Manager dashboard (Phase 4, screen 3/3)
 
-- `GET /dashboard/summary` (restricted to `role=manager`) returns ticket volume by status, top categories, SLA breaches, and the AI's triage accuracy — suggested vs. final value of `priority`/`category_id` (design-itsm-mvp.md §5), counting only tickets where the AI actually suggested something.
-- **Still left out of the dashboard:** the % of tickets resolved without human intervention — the last of the design doc's four headline metrics (§2.3) — because `resolved_by_ai` is never set yet (the `resolve-by-user` endpoint doesn't exist).
+- `GET /dashboard/summary` (restricted to `role=manager`) returns ticket volume by status, top categories, SLA breaches, % resolved by AI, and the AI's triage accuracy — suggested vs. final value of `priority`/`category_id` (design-itsm-mvp.md §5), counting only tickets where the AI actually suggested something. All 4 of the design doc's headline metrics (§2.3) now have real data.
 - Auth guard wired into `/tickets` as part of this screen (a Phase 4.0 debt that was still open): any logged-in user can call it, no role restriction.
 - Login extended again: the picker now also lists Beatriz Lima (manager); logging in as manager lands directly on `/dashboard`.
 
@@ -182,6 +189,14 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - `sla_rules` seeded (`scripts/seed_dev_data.py`) with 4 priorities — `resolution_time_hours`: critical=4h, high=8h, medium=24h, low=72h.
 - `sla_due_at` is computed on `POST /tickets` (creation) and recomputed on `PATCH /tickets/{id}` whenever `priority` changes — but based on `created_at`, not the moment of the PATCH, so reclassifying priority can't "reset the clock" on the SLA.
 - The dashboard shows tickets with a breached SLA (`sla_due_at` in the past + status still open).
+
+### Resolve-by-user (Phase 4, sub-phase after SLA)
+
+- Closes the dashboard's last gap: `% resolved by AI` — the project's central differentiator metric (design-itsm-mvp.md §2.3).
+- **Scope simplification:** the design doc (§5) imagines the triage AI already returning the suggested article along with category/priority. Here the suggestion is matched by `category_id` (`kb_articles` seeded with 1 article per category), without involving the AI in this step — doesn't touch the triage service, which is already closed and tested.
+- `GET /kb-articles?category_id=` (also covers `GET /kb-articles/{id}`) lists the articles for the ticket's category.
+- `POST /tickets/{id}/resolve-by-user`: only the ticket's `requester_id` can call it (403 otherwise) and only while `status == "open"` (400 otherwise) — sets `status=resolved` + `resolved_by_ai=true`.
+- The dashboard gained a highlighted `% resolved by AI, no technician` card, at the top of the page.
 
 ---
 

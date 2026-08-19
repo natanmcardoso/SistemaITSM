@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import Ticket
+from app.models import Ticket, User
 from app.schemas import TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
 from app.security import get_current_user
 from app.services.sla import compute_sla_due_at
@@ -50,6 +50,34 @@ def create_ticket(payload: TicketCreate, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=400, detail="requester_id, category_id ou assignee_id inválido(s)"
         ) from exc
+    db.refresh(ticket)
+    return ticket
+
+
+@router.post("/{ticket_id}/resolve-by-user", response_model=TicketOut)
+def resolve_by_user(
+    ticket_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Usuário fecha o próprio chamado a partir da sugestão da IA, sem
+    intervenção de técnico (design-itsm-mvp.md §2.1/§5) — alimenta a métrica
+    central do dashboard (% resolvido por IA, §2.3).
+    """
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket não encontrado")
+    if ticket.requester_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Só o solicitante pode resolver o próprio chamado")
+    if ticket.status != "open":
+        raise HTTPException(
+            status_code=400,
+            detail="Chamado só pode ser resolvido pelo usuário enquanto está aberto e sem atendimento",
+        )
+
+    ticket.status = "resolved"
+    ticket.resolved_by_ai = True
+    db.commit()
     db.refresh(ticket)
     return ticket
 

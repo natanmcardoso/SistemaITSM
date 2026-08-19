@@ -1,4 +1,4 @@
-import type { DashboardSummary, TicketCreate, TicketOut, TokenResponse } from "./types";
+import type { DashboardSummary, KBArticleOut, TicketCreate, TicketOut, TokenResponse } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -48,6 +48,15 @@ export function createTicket(token: string, payload: TicketCreate): Promise<Tick
 
 export function getDashboardSummary(token: string): Promise<DashboardSummary> {
   return request<DashboardSummary>("/dashboard/summary", { method: "GET" }, token);
+}
+
+export function getKbArticlesByCategory(token: string, categoryId: string): Promise<KBArticleOut[]> {
+  const params = new URLSearchParams({ category_id: categoryId });
+  return request<KBArticleOut[]>(`/kb-articles?${params.toString()}`, { method: "GET" }, token);
+}
+
+export function resolveByUser(token: string, ticketId: string): Promise<TicketOut> {
+  return request<TicketOut>(`/tickets/${ticketId}/resolve-by-user`, { method: "POST" }, token);
 }
 
 export { ApiError };

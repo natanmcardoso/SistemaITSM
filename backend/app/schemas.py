@@ -81,6 +81,16 @@ class TicketDetailOut(TicketOut):
     interactions: list[InteractionOut] = []
 
 
+class KBArticleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    content: str
+    category_id: Optional[uuid.UUID]
+    times_suggested: int
+
+
 class CategoryCount(BaseModel):
     name: str
     count: int
@@ -110,11 +120,18 @@ class SLAMetric(BaseModel):
     breached: int
 
 
-class DashboardSummary(BaseModel):
-    """Fase 4, tela 3/3 (+ sub-fase SLA depois).
+class AIResolutionMetric(BaseModel):
+    """% de chamados resolvidos pelo usuário via sugestão da IA, sem técnico
+    (design-itsm-mvp.md §2.3 — a métrica central do diferencial do projeto).
+    """
 
-    % resolvido por IA ainda fica de fora: `resolved_by_ai` nunca é setado
-    (não existe endpoint resolve-by-user ainda) — ver CLAUDE.md.
+    total_tickets: int
+    resolved_by_ai: int
+
+
+class DashboardSummary(BaseModel):
+    """Fase 4, tela 3/3 + sub-fases SLA e resolve-by-user — as 4 métricas
+    centrais do design doc (§2.3) reais.
     """
 
     total_tickets: int
@@ -123,3 +140,4 @@ class DashboardSummary(BaseModel):
     ai_accuracy_priority: AIAccuracyMetric
     ai_accuracy_category: AIAccuracyMetric
     sla: SLAMetric
+    ai_resolution: AIResolutionMetric

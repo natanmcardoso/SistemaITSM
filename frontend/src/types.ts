@@ -56,6 +56,11 @@ export interface SLAMetric {
   breached: number;
 }
 
+export interface AIResolutionMetric {
+  total_tickets: number;
+  resolved_by_ai: number;
+}
+
 export interface DashboardSummary {
   total_tickets: number;
   by_status: Record<TicketStatus, number>;
@@ -63,4 +68,13 @@ export interface DashboardSummary {
   ai_accuracy_priority: AIAccuracyMetric;
   ai_accuracy_category: AIAccuracyMetric;
   sla: SLAMetric;
+  ai_resolution: AIResolutionMetric;
+}
+
+export interface KBArticleOut {
+  id: string;
+  title: string;
+  content: string;
+  category_id: string | null;
+  times_suggested: number;
 }

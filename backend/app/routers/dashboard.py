@@ -1,13 +1,11 @@
-"""Dashboard do gestor (Fase 4, tela 3/3 + sub-fase SLA).
+"""Dashboard do gestor (Fase 4, tela 3/3 + sub-fases SLA e resolve-by-user).
 
 Volume de chamados, distribuição por status, top categorias, acerto da
 sugestão da IA (sugerida vs. valor final de priority/category_id —
-design-itsm-mvp.md §5) e SLA estourado (chamados com `sla_due_at` no passado
-e ainda não resolvidos/fechados — app/services/sla.py).
-
-% resolvido por IA (a última das quatro métricas centrais do design doc,
-§2.3) ainda fica de fora por decisão explícita: `resolved_by_ai` nunca é
-setado, porque não existe endpoint resolve-by-user — ver CLAUDE.md.
+design-itsm-mvp.md §5), SLA estourado (app/services/sla.py) e % resolvido
+por IA sem técnico (`resolved_by_ai`, setado só via
+POST /tickets/{id}/resolve-by-user) — as 4 métricas centrais do design doc
+§2.3, todas com dado real agora.
 """
 from datetime import datetime, timezone
 
@@ -17,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import TICKET_STATUSES, Category, Ticket
-from app.schemas import AIAccuracyMetric, CategoryCount, DashboardSummary, SLAMetric
+from app.schemas import AIAccuracyMetric, AIResolutionMetric, CategoryCount, DashboardSummary, SLAMetric
 from app.security import require_role
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -67,6 +65,8 @@ def get_summary(db: Session = Depends(get_db)):
         .count()
     )
 
+    resolved_by_ai = db.query(Ticket).filter(Ticket.resolved_by_ai.is_(True)).count()
+
     return DashboardSummary(
         total_tickets=total_tickets,
         by_status=by_status,
@@ -74,4 +74,5 @@ def get_summary(db: Session = Depends(get_db)):
         ai_accuracy_priority=_ai_accuracy(db, Ticket.ai_suggested_priority, Ticket.priority),
         ai_accuracy_category=_ai_accuracy(db, Ticket.ai_suggested_category_id, Ticket.category_id),
         sla=SLAMetric(tracked_total=tracked_total, breached=breached),
+        ai_resolution=AIResolutionMetric(total_tickets=total_tickets, resolved_by_ai=resolved_by_ai),
     )

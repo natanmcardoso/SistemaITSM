@@ -12,6 +12,11 @@ mas a sugestão da IA continua preservada separada (design-itsm-mvp.md §5).
 Nota: desde a Fase 4 (tela 3/3), POST /tickets exige token (qualquer usuário
 autenticado) — gerado direto via create_access_token, sem passar por
 /auth/login (password_hash de teste é fake).
+
+Nota 2: as categorias "Hardware"/"Acesso" usadas aqui reaproveitam as já
+cadastradas (ex.: seed_dev_data.py) em vez de criar duplicadas — nome não é
+único no schema e a IA mock casa por nome exato, então duas linhas com o
+mesmo nome deixam a triagem ambígua (já quebrou este teste por causa disso).
 """
 from fastapi.testclient import TestClient
 
@@ -23,19 +28,34 @@ from app.security import create_access_token
 client = TestClient(app)
 
 
+def _ensure_category(db, name: str, default_sla_hours: int):
+    """Reusa a categoria já cadastrada (ex.: seed_dev_data.py) em vez de criar
+    uma duplicada — nome não é único no schema, e a IA mock casa por nome
+    exato (app/services/triage_mock.py), então duas linhas com o mesmo nome
+    deixam a triagem ambígua (já quebrou um teste por causa disso — ver
+    CLAUDE.md). Devolve (categoria, criada_agora)."""
+    existing = db.query(Category).filter(Category.name == name).first()
+    if existing:
+        return existing, False
+    category = Category(name=name, default_sla_hours=default_sla_hours)
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category, True
+
+
 def run():
     db = SessionLocal()
     requester = User(
         name="Usuário IA Teste", email="teste.ia.requester@example.com", role="end_user",
         password_hash="x",
     )
-    cat_hardware = Category(name="Hardware", default_sla_hours=24)
-    cat_acesso = Category(name="Acesso", default_sla_hours=8)
-    db.add_all([requester, cat_hardware, cat_acesso])
+    db.add(requester)
     db.commit()
     db.refresh(requester)
-    db.refresh(cat_hardware)
-    db.refresh(cat_acesso)
+
+    cat_hardware, hardware_created = _ensure_category(db, "Hardware", 24)
+    cat_acesso, acesso_created = _ensure_category(db, "Acesso", 8)
     print(f"[setup] requester={requester.id} categorias=Hardware/{cat_hardware.id}, Acesso/{cat_acesso.id}")
 
     auth_headers = {"Authorization": f"Bearer {create_access_token(requester)}"}
@@ -125,7 +145,9 @@ def run():
     finally:
         if created_ids:
             db.query(Ticket).filter(Ticket.id.in_(created_ids)).delete(synchronize_session=False)
-        db.query(Category).filter(Category.id.in_([cat_hardware.id, cat_acesso.id])).delete(synchronize_session=False)
+        own_category_ids = [c.id for c, created in [(cat_hardware, hardware_created), (cat_acesso, acesso_created)] if created]
+        if own_category_ids:
+            db.query(Category).filter(Category.id.in_(own_category_ids)).delete(synchronize_session=False)
         db.query(User).filter(User.id == requester.id).delete()
         db.commit()
         db.close()

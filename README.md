@@ -14,7 +14,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
 ✅ Fase 3 concluída e testada — triagem por IA plugada na criação de chamados (modo mock por padrão; live com Anthropic quando `ANTHROPIC_API_KEY` estiver configurada)
 ✅ Fase 4.0 concluída e testada — autenticação (login + JWT), pré-requisito da Fase 4 (frontend)
-✅ Fase 4 (frontend) concluída e testada — fila do técnico, novo chamado e dashboard do gestor
+✅ Fase 4 (frontend) concluída e testada — fila do técnico, novo chamado e dashboard do gestor, incluindo as sub-fases de SLA e resolve-by-user: as 4 métricas centrais do design doc (§2.3) têm dado real no dashboard
 
 ---
 
@@ -101,9 +101,14 @@ python test_phase4_dashboard.py
 # dashboard), via API real, depois limpa
 python test_phase4_sla.py
 
-# popula o banco com dados de dev persistentes (técnicos, categorias, chamados
-# de exemplo) — necessário pra tela de fila do técnico ter o que mostrar.
-# Idempotente, pode rodar de novo sem duplicar. Senha de todas as contas: demo1234
+# roda o teste de resolve-by-user (KB por categoria + usuário fechando o
+# próprio chamado via sugestão da IA), via API real, depois limpa
+python test_phase4_resolve_by_user.py
+
+# popula o banco com dados de dev persistentes (usuários, categorias,
+# sla_rules, kb_articles, chamados de exemplo) — necessário pras 3 telas do
+# frontend terem o que mostrar. Idempotente, pode rodar de novo sem
+# duplicar. Senha de todas as contas: demo1234
 python scripts/seed_dev_data.py
 ```
 
@@ -139,6 +144,9 @@ POST   /tickets                     → cria chamado (triagem por IA roda automa
 GET    /tickets                     → lista (filtros: status, priority, assignee_id) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
+POST   /tickets/{id}/resolve-by-user → usuário fecha o próprio chamado via sugestão da IA — requer login (só o solicitante)
+GET    /kb-articles                 → lista artigos da KB (filtro opcional ?category_id=) — requer login
+GET    /kb-articles/{id}            → detalhe de um artigo — requer login
 GET    /dashboard/summary           → métricas do dashboard do gestor — requer login com role=manager
 ```
 
@@ -167,13 +175,12 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 ### Novo chamado (Fase 4, tela 2/3)
 
 - Fluxo do usuário final (design-itsm-mvp.md §2.1): formulário com título + descrição, `POST /tickets` envia `requester_id` do usuário logado e dispara a triagem por IA automaticamente.
-- Tela de confirmação mostra a categoria e a prioridade que a IA sugeriu na criação — a etapa de sugestão de artigo da KB + "resolveu/não resolveu" fica para uma fase futura, já que os endpoints de `kb_articles` e `resolve-by-user` ainda não existem no backend.
+- Depois de criar, busca `GET /kb-articles?category_id=` pela categoria final do chamado; se achar artigo, mostra a sugestão com "Resolveu, pode fechar" (chama `resolve-by-user`) / "Não resolveu" — ver seção própria abaixo. Sem artigo pra categoria, pula direto pra confirmação (categoria/prioridade sugeridas pela IA).
 - Login estendido: o mesmo seletor de contas da tela de fila agora também lista os usuários finais semeados (João Pereira, Marina Alves); o destino pós-login é decidido pela `role` (`end_user` → `/novo-chamado`, `technician` → `/fila`).
 
 ### Dashboard do gestor (Fase 4, tela 3/3)
 
-- `GET /dashboard/summary` (restrito a `role=manager`) devolve volume de chamados por status, top categorias, SLA estourado e o acerto da IA na triagem — sugestão vs. valor final de `priority`/`category_id` (design-itsm-mvp.md §5), só contando chamados em que a IA de fato sugeriu algo.
-- **Ainda fora do dashboard:** % de chamados resolvidos sem intervenção humana — a última das quatro métricas centrais do design doc (§2.3) — porque `resolved_by_ai` nunca é setado (o endpoint `resolve-by-user` não existe ainda).
+- `GET /dashboard/summary` (restrito a `role=manager`) devolve volume de chamados por status, top categorias, SLA estourado, % resolvido por IA e o acerto da IA na triagem — sugestão vs. valor final de `priority`/`category_id` (design-itsm-mvp.md §5), só contando chamados em que a IA de fato sugeriu algo. As 4 métricas centrais do design doc (§2.3) têm dado real.
 - Guard de autenticação plugado em `/tickets` nesta tela (dívida da Fase 4.0 que ainda estava aberta): qualquer usuário logado pode chamar, sem restrição de role.
 - Login estendido de novo: o seletor agora também lista Beatriz Lima (manager); login como gestor cai direto em `/dashboard`.
 
@@ -182,6 +189,14 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - `sla_rules` semeada (`scripts/seed_dev_data.py`) com 4 prioridades — `resolution_time_hours`: critical=4h, high=8h, medium=24h, low=72h.
 - `sla_due_at` calculado em `POST /tickets` (criação) e recalculado em `PATCH /tickets/{id}` sempre que `priority` muda — mas a partir de `created_at`, não do instante do PATCH, pra reclassificar prioridade não "resetar o relógio" do SLA.
 - Dashboard mostra chamados com SLA estourado (`sla_due_at` no passado + status ainda aberto).
+
+### Resolve-by-user (Fase 4, sub-fase pós SLA)
+
+- Fecha a última lacuna do dashboard: `% resolvido por IA` — a métrica central do diferencial do projeto (design-itsm-mvp.md §2.3).
+- **Simplificação de escopo:** o design doc (§5) imagina a IA de triagem já devolvendo o artigo sugerido junto com categoria/prioridade. Aqui a sugestão é feita casando por `category_id` (`kb_articles` semeada com 1 artigo por categoria), sem envolver a IA nessa etapa — não mexe no serviço de triagem já fechado e testado.
+- `GET /kb-articles?category_id=` (também cobre `GET /kb-articles/{id}`) lista os artigos da categoria do chamado.
+- `POST /tickets/{id}/resolve-by-user`: só o `requester_id` do chamado pode chamar (403 senão) e só enquanto `status == "open"` (400 senão) — seta `status=resolved` + `resolved_by_ai=true`.
+- Dashboard ganhou o card `% resolvido pela IA, sem técnico` em destaque, no topo da tela.
 
 ---
 

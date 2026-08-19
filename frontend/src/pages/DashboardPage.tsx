@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ApiError, getDashboardSummary } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { StatusBadge } from "../components/StatusBadge";
-import type { AIAccuracyMetric, DashboardSummary, TicketStatus } from "../types";
+import type { AIAccuracyMetric, AIResolutionMetric, DashboardSummary, TicketStatus } from "../types";
 
 const STATUS_ORDER: TicketStatus[] = ["open", "in_progress", "resolved", "closed"];
 
@@ -20,6 +20,28 @@ function AccuracyCard({ title, metric }: { title: string; metric: AIAccuracyMetr
           <p className="mt-1 text-sm text-slate-500">
             mantida pelo técnico — {metric.matched} de {metric.suggested_total} chamado(s) com sugestão da IA
             ({metric.changed} reclassificado(s))
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AIResolutionHero({ metric }: { metric: AIResolutionMetric }) {
+  const pct = metric.total_tickets > 0 ? Math.round((metric.resolved_by_ai / metric.total_tickets) * 100) : null;
+  return (
+    <div className="mb-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+        % resolvido pela IA, sem técnico
+      </h3>
+      {metric.total_tickets === 0 ? (
+        <p className="mt-3 text-sm text-emerald-800">Nenhum chamado ainda.</p>
+      ) : (
+        <>
+          <p className="mt-2 text-4xl font-semibold text-emerald-900">{pct}%</p>
+          <p className="mt-1 text-sm text-emerald-800">
+            {metric.resolved_by_ai} de {metric.total_tickets} chamado(s) fechados pelo próprio usuário a
+            partir da sugestão da IA — a métrica central do diferencial do projeto (design-itsm-mvp.md §2.3)
           </p>
         </>
       )}
@@ -67,6 +89,8 @@ export function DashboardPage() {
           <p className="text-sm text-slate-500">Carregando...</p>
         ) : summary ? (
           <>
+            <AIResolutionHero metric={summary.ai_resolution} />
+
             <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -131,12 +155,6 @@ export function DashboardPage() {
               <AccuracyCard title="Prioridade" metric={summary.ai_accuracy_priority} />
               <AccuracyCard title="Categoria" metric={summary.ai_accuracy_category} />
             </section>
-
-            <p className="text-xs text-slate-400">
-              % de chamados resolvidos sem intervenção humana ainda não aparece aqui — depende de um fluxo
-              que o backend ainda não implementa (usuário fechar o próprio chamado a partir da sugestão da
-              IA).
-            </p>
           </>
         ) : null}
       </div>

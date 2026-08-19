@@ -12,7 +12,7 @@ manualmente no Neon.
 from datetime import datetime, timedelta, timezone
 
 from app.database import SessionLocal
-from app.models import Category, SLARule, Ticket, User
+from app.models import Category, KBArticle, SLARule, Ticket, User
 from app.security import hash_password
 from app.services.sla import compute_sla_due_at
 
@@ -40,6 +40,41 @@ SLA_RULES = [
     {"priority": "high", "response_time_hours": 2, "resolution_time_hours": 8},
     {"priority": "medium", "response_time_hours": 8, "resolution_time_hours": 24},
     {"priority": "low", "response_time_hours": 24, "resolution_time_hours": 72},
+]
+
+# (title, content, category_name) — sugestão de KB por categoria (Fase 4,
+# sub-fase resolve-by-user); casamento simples por category_id, sem IA
+# envolvida nessa etapa (decisão registrada no CLAUDE.md).
+KB_ARTICLES = [
+    (
+        "Notebook não liga: primeiros passos",
+        "1) Confirme que o carregador está na tomada e o LED de energia acende. "
+        "2) Tente um cabo/carregador diferente, se tiver. 3) Segure o botão de "
+        "energia por 15s pra descarregar resíduo de energia e tente ligar de novo. "
+        "Se nada disso funcionar, o chamado segue pro técnico com essas informações.",
+        "Hardware",
+    ),
+    (
+        "Erro ao abrir sistema: como limpar cache",
+        "Muitos erros genéricos de sistema (erro 500, tela branca, travamento ao "
+        "gerar relatório) são resolvidos limpando o cache do navegador (Ctrl+Shift+Del) "
+        "e tentando em uma aba anônima. Se o erro persistir, o chamado segue pro técnico.",
+        "Software",
+    ),
+    (
+        "Como reconectar à VPN corporativa",
+        "1) Desconecte e reconecte a VPN pelo aplicativo. 2) Reinicie o Wi-Fi/roteador. "
+        "3) Confirme que sua senha de rede não expirou. Se a VPN continuar sem conectar "
+        "após esses passos, o chamado segue pro técnico.",
+        "Rede",
+    ),
+    (
+        "Como solicitar acesso a pastas/sistemas compartilhados",
+        "Acessos a pastas e sistemas compartilhados dependem de aprovação do gestor da "
+        "área responsável — não são liberados automaticamente. Use este artigo só pra "
+        "confirmar o processo; o chamado sempre segue pro técnico registrar a solicitação.",
+        "Acesso e Conta",
+    ),
 ]
 
 # (title, description, priority, status, category_name, requester_email,
@@ -142,6 +177,14 @@ def run():
             )
             db.add(rule)
             print(f"[criado] sla_rule: {rule.priority}")
+
+        for title, content, cat_name in KB_ARTICLES:
+            existing = db.query(KBArticle).filter(KBArticle.title == title).first()
+            if existing:
+                continue
+            article = KBArticle(title=title, content=content, category_id=categories_by_name[cat_name].id)
+            db.add(article)
+            print(f"[criado] kb_article: {title}")
 
         db.commit()
 
