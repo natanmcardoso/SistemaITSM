@@ -20,6 +20,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Ticket tracking (end user) + KB search (technician) — close the design doc's last remaining gaps (§2.1/§2.2)
 ✅ Phase 5 (Navigation & Discovery) completed and tested — queue filters/search, a clickable dashboard, and all 4 screens made responsive (Tailwind breakpoints + a mobile drawer sidebar)
 ✅ Phase 6 (CMDB + Problem Management) completed and tested — `assets`/`problems` tables, seed data linking tickets to both, dashboard showing "N tickets linked" per asset/problem (no dedicated CRUD screen, by design)
+✅ Phase 8 (Queue tweaks, wider search, editable KB) completed and tested — clickable priority cards, "My tickets"/"General queue" as their own sidebar tabs, search by requester/technician name, creating and editing knowledge-base articles
 
 ---
 
@@ -55,6 +56,11 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
   - [x] Clickable dashboard (metrics become links to an already-filtered queue)
   - [x] Responsive (Tailwind breakpoints; sidebar becomes a mobile drawer)
 - [x] Phase 6 — CMDB + Problem Management (ITIL alignment)
+- [x] Phase 8 — Queue tweaks, wider search, editable KB
+  - [x] Clickable priority cards on the queue
+  - [x] "My tickets" and "General queue" as their own tabs on the technician sidebar
+  - [x] Search by requester/technician name in `GET /tickets?query=`
+  - [x] Creating and editing knowledge-base articles
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -144,6 +150,12 @@ python scripts/seed_dev_data.py
 # metrics
 python test_phase6_cmdb_seed.py
 python test_phase6_dashboard.py
+
+# runs the Phase 8 tests: search by requester/technician name in
+# GET /tickets, and the KB article CRUD (create/edit, technician-only),
+# via the real API, then clean up
+python test_phase8_search_by_name.py
+python test_phase8_kb_crud.py
 ```
 
 ### Frontend (Phase 4)
@@ -182,6 +194,8 @@ POST   /tickets/{id}/interactions   → logs a history entry on the ticket — r
 POST   /tickets/{id}/resolve-by-user → user closes their own ticket via the AI suggestion — requires login (requester only)
 GET    /kb-articles                 → lists/searches KB articles (optional ?category_id= and ?query= filters) — requires login
 GET    /kb-articles/{id}            → detail for one article — requires login
+POST   /kb-articles                 → creates an article — requires login with role=technician
+PATCH  /kb-articles/{id}            → edits an article (partial) — requires login with role=technician
 GET    /dashboard/summary           → manager dashboard metrics — requires login with role=manager
 ```
 
@@ -273,6 +287,13 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - Two new tables: `assets` (name, type, status, owner, serial number) and `problems` (title, root cause, status) — `tickets` gains `asset_id`/`problem_id`, both optional and independent of each other.
 - **No dedicated CRUD screen in this phase** (scope decision — cover ITIL's core well instead of replicating the framework's 34+ practices): assets/problems are seeded via `scripts/seed_dev_data.py` and linked to existing tickets just to feed the dashboard.
 - `GET /dashboard/summary` gained `top_assets`/`top_problems` — "N tickets linked to this asset/problem" — shown in 2 new cards on the manager dashboard.
+
+### Queue tweaks, wider search, editable KB (Phase 8)
+
+- **Clickable priority cards:** on the technician queue, each "open tickets by priority" card becomes a quick `?priority=` filter shortcut, on the same screen.
+- **"My tickets" and "General queue" as their own tabs:** used to be two stacked sections on a single screen; now they're two routes with a dedicated sidebar item each (`/meus-atendimentos` and `/fila`), reusing the same queue+filters component (`TicketQueueBoard`). The "Technician" filter that existed in the filter bar was removed — the scope is already fixed per tab.
+- **Search by name:** `GET /tickets?query=` now also matches the requester's or assignee's name (in addition to title/description, which already worked since Phase 5).
+- **KB article CRUD:** `POST /kb-articles` (create) and `PATCH /kb-articles/{id}` (edit), restricted to `role=technician`. No delete. The knowledge base screen gained a "New article" button and an edit icon on each card, with an inline form.
 
 ---
 

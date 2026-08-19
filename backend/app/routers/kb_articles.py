@@ -14,12 +14,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import KBArticle
-from app.schemas import KBArticleOut
-from app.security import get_current_user
+from app.schemas import KBArticleCreate, KBArticleOut, KBArticleUpdate
+from app.security import get_current_user, require_role
 
 router = APIRouter(prefix="/kb-articles", tags=["kb-articles"], dependencies=[Depends(get_current_user)])
 
@@ -44,4 +45,49 @@ def get_kb_article(article_id: uuid.UUID, db: Session = Depends(get_db)):
     article = db.query(KBArticle).filter(KBArticle.id == article_id).first()
     if article is None:
         raise HTTPException(status_code=404, detail="Artigo não encontrado")
+    return article
+
+
+@router.post(
+    "",
+    response_model=KBArticleOut,
+    status_code=201,
+    dependencies=[Depends(require_role("technician"))],
+)
+def create_kb_article(payload: KBArticleCreate, db: Session = Depends(get_db)):
+    """Fase 8.4 — criação de artigo, restrita a técnico. Sem exclusão (fora
+    do pedido que originou esta sub-fase)."""
+    article = KBArticle(title=payload.title, content=payload.content, category_id=payload.category_id)
+    db.add(article)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="category_id inválido") from exc
+    db.refresh(article)
+    return article
+
+
+@router.patch(
+    "/{article_id}",
+    response_model=KBArticleOut,
+    dependencies=[Depends(require_role("technician"))],
+)
+def update_kb_article(article_id: uuid.UUID, payload: KBArticleUpdate, db: Session = Depends(get_db)):
+    """Fase 8.4 — edição parcial, restrita a técnico (mesmo padrão de PATCH
+    /tickets/{id})."""
+    article = db.query(KBArticle).filter(KBArticle.id == article_id).first()
+    if article is None:
+        raise HTTPException(status_code=404, detail="Artigo não encontrado")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(article, field, value)
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="category_id inválido") from exc
+    db.refresh(article)
     return article

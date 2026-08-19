@@ -95,6 +95,20 @@ class KBArticleOut(BaseModel):
     times_suggested: int
 
 
+class KBArticleCreate(BaseModel):
+    title: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+    category_id: Optional[uuid.UUID] = None
+
+
+class KBArticleUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial (mesmo padrão de TicketUpdate)."""
+
+    title: Optional[str] = Field(default=None, min_length=1)
+    content: Optional[str] = Field(default=None, min_length=1)
+    category_id: Optional[uuid.UUID] = None
+
+
 class CategoryCount(BaseModel):
     name: str
     count: int

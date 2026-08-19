@@ -100,3 +100,15 @@ export interface KBArticleOut {
   category_id: string | null;
   times_suggested: number;
 }
+
+export interface KBArticleCreate {
+  title: string;
+  content: string;
+  category_id?: string;
+}
+
+export interface KBArticleUpdate {
+  title?: string;
+  content?: string;
+  category_id?: string;
+}

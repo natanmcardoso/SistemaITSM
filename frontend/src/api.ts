@@ -1,7 +1,9 @@
 import type {
   DashboardSummary,
   InteractionOut,
+  KBArticleCreate,
   KBArticleOut,
+  KBArticleUpdate,
   TicketCreate,
   TicketDetailOut,
   TicketOut,
@@ -82,6 +84,18 @@ export function listKbArticles(
   }
   const qs = params.toString() ? `?${params.toString()}` : "";
   return request<KBArticleOut[]>(`/kb-articles${qs}`, { method: "GET" }, token);
+}
+
+export function createKbArticle(token: string, payload: KBArticleCreate): Promise<KBArticleOut> {
+  return request<KBArticleOut>("/kb-articles", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function updateKbArticle(token: string, articleId: string, payload: KBArticleUpdate): Promise<KBArticleOut> {
+  return request<KBArticleOut>(
+    `/kb-articles/${articleId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
 }
 
 export function resolveByUser(token: string, ticketId: string): Promise<TicketOut> {

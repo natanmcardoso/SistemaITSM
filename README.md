@@ -20,6 +20,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Acompanhamento do chamado (usuário final) + busca de KB (técnico) — fecham os últimos gaps do design doc (§2.1/§2.2)
 ✅ Fase 5 (Navegação e Descoberta) concluída e testada — filtros + busca na fila, dashboard clicável e as 4 telas responsivas (breakpoints Tailwind + sidebar em drawer no mobile)
 ✅ Fase 6 (CMDB + Problem Management) concluída e testada — tabelas `assets`/`problems`, seed vinculando chamados a ambos, dashboard mostrando "N chamados vinculados" por ativo/problema (sem tela de CRUD dedicada, por design)
+✅ Fase 8 (Ajustes de fila, busca ampliada e KB editável) concluída e testada — cards de prioridade clicáveis, "Meus chamados"/"Fila geral" em abas próprias na sidebar, busca por nome de solicitante/técnico, criação e edição de artigos da base de conhecimento
 
 ---
 
@@ -55,6 +56,11 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
   - [x] Dashboard clicável (métricas viram links pra fila já filtrada)
   - [x] Responsivo (breakpoints Tailwind nas telas; sidebar vira drawer no mobile)
 - [x] Fase 6 — CMDB + Problem Management (alinhamento ITIL)
+- [x] Fase 8 — Ajustes de fila, busca ampliada e KB editável
+  - [x] Cards de prioridade clicáveis na fila
+  - [x] "Meus chamados" e "Fila geral" em abas próprias na sidebar do técnico
+  - [x] Busca por nome de solicitante/técnico em `GET /tickets?query=`
+  - [x] Criação e edição de artigos da base de conhecimento
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -144,6 +150,12 @@ python scripts/seed_dev_data.py
 # top_problems no dashboard
 python test_phase6_cmdb_seed.py
 python test_phase6_dashboard.py
+
+# roda os testes da Fase 8: busca por nome de solicitante/técnico em
+# GET /tickets, e o CRUD de artigos da KB (criar/editar, restrito a
+# técnico), via API real, depois limpam
+python test_phase8_search_by_name.py
+python test_phase8_kb_crud.py
 ```
 
 ### Frontend (Fase 4)
@@ -182,6 +194,8 @@ POST   /tickets/{id}/interactions   → registra uma entrada de histórico no ch
 POST   /tickets/{id}/resolve-by-user → usuário fecha o próprio chamado via sugestão da IA — requer login (só o solicitante)
 GET    /kb-articles                 → lista/busca artigos da KB (filtros opcionais ?category_id= e ?query=) — requer login
 GET    /kb-articles/{id}            → detalhe de um artigo — requer login
+POST   /kb-articles                 → cria artigo — requer login com role=technician
+PATCH  /kb-articles/{id}            → edita artigo (parcial) — requer login com role=technician
 GET    /dashboard/summary           → métricas do dashboard do gestor — requer login com role=manager
 ```
 
@@ -273,6 +287,13 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - Duas tabelas novas: `assets` (nome, tipo, status, dono, número de série) e `problems` (título, causa raiz, status) — `tickets` ganha `asset_id`/`problem_id`, os dois opcionais e independentes entre si.
 - **Sem tela de CRUD dedicada nesta fase** (decisão de escopo — cobrir o núcleo de ITIL sem replicar as 34+ práticas do framework): ativos/problemas são semeados via `scripts/seed_dev_data.py` e vinculados a chamados existentes só pra alimentar o dashboard.
 - `GET /dashboard/summary` ganhou `top_assets`/`top_problems` — "N chamados vinculados a este ativo/problema" — exibidos em 2 novos cards no dashboard do gestor.
+
+### Ajustes de fila, busca ampliada e KB editável (Fase 8)
+
+- **Cards de prioridade clicáveis:** na fila do técnico, cada card de "Chamados em aberto por prioridade" vira atalho de filtro pra `?priority=`, na própria tela.
+- **"Meus chamados" e "Fila geral" em abas próprias:** antes eram duas seções empilhadas numa única tela; agora são duas rotas com item de sidebar dedicado (`/meus-atendimentos` e `/fila`), reaproveitando o mesmo componente de fila+filtros (`TicketQueueBoard`). O filtro "Técnico" que existia na barra de filtros foi removido — o escopo já é fixo por aba.
+- **Busca por nome:** `GET /tickets?query=` passa a casar também pelo nome do solicitante ou do técnico atribuído (além de título/descrição, que já buscava desde a Fase 5).
+- **CRUD de artigos da KB:** `POST /kb-articles` (criar) e `PATCH /kb-articles/{id}` (editar), restritos a `role=technician`. Sem exclusão. A tela de base de conhecimento ganhou botão "Novo artigo" e ícone de editar em cada card, com formulário inline.
 
 ---
 
