@@ -13,7 +13,8 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 1 concluída e testada — modelo de dados + migrations
 ✅ Fase 2 concluída e testada — endpoints core de `tickets` (CRUD, sem IA)
 ✅ Fase 3 concluída e testada — triagem por IA plugada na criação de chamados (modo mock por padrão; live com Anthropic quando `ANTHROPIC_API_KEY` estiver configurada)
-🚧 Próxima: Fase 4 (frontend)
+✅ Fase 4.0 concluída e testada — autenticação (login + JWT), pré-requisito da Fase 4 (frontend)
+🚧 Próxima: Fase 4 (frontend) — fila do técnico
 
 ---
 
@@ -39,6 +40,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 - [x] Fase 1 — Modelo de dados + migrations
 - [x] Fase 2 — Endpoints core de `tickets` (CRUD, sem IA)
 - [x] Fase 3 — Integração com IA de triagem
+- [x] Fase 4.0 — Autenticação (login + JWT)
 - [ ] Fase 4 — Frontend (fila do técnico → novo chamado → dashboard)
 - [ ] Fase 5 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
@@ -59,6 +61,10 @@ cd SistemaITSM
 # ANTHROPIC_API_KEY=
 # LLM_MODEL=claude-haiku-4-5
 # Sem ANTHROPIC_API_KEY, a triagem roda em modo mock (heurística local, sem custo de API).
+#
+# obrigatório a partir da Fase 4.0 — segredo de assinatura dos JWTs de login:
+# JWT_SECRET=<gere com: python -c "import secrets; print(secrets.token_urlsafe(48))">
+
 
 cd backend
 python -m venv .venv
@@ -80,12 +86,17 @@ python test_phase2_tickets_api.py
 
 # roda o teste da Fase 3 (triagem por IA via API real, modo mock por padrão, depois limpa)
 python test_phase3_ai_triage.py
+
+# roda o teste da Fase 4.0 (login + JWT via API real, depois limpa)
+python test_phase4_0_auth.py
 ```
 
 ### Endpoints disponíveis
 
 ```
 GET    /health
+POST   /auth/login                  → login (email + senha) → JWT
+GET    /auth/me                     → dados do usuário autenticado (requer Bearer token)
 POST   /tickets                     → cria chamado (triagem por IA roda automaticamente)
 GET    /tickets                     → lista (filtros: status, priority, assignee_id)
 GET    /tickets/{id}                → detalhe + histórico de interações
@@ -99,6 +110,13 @@ PATCH  /tickets/{id}                → atualiza status/priority/category_id/ass
 - Se `priority`/`category_id` não forem informados na criação, o valor sugerido pela IA vira o valor inicial do chamado (editável depois via `PATCH`). Se forem informados explicitamente, prevalecem — mas a sugestão da IA continua registrada.
 - **Modo mock** (padrão, sem `ANTHROPIC_API_KEY`): heurística local por palavras-chave (`app/services/triage_mock.py`) — não chama API externa, usada nos testes automatizados.
 - **Modo live** (com `ANTHROPIC_API_KEY` configurada): chama a Anthropic (Claude), reaproveitando o padrão de prompt/parse/retry/fallback validado no [AIOps Copilot](https://github.com/natanmcardoso).
+
+### Autenticação (Fase 4.0)
+
+- Login por email/senha (`POST /auth/login`) retorna um JWT (HS256, expira em 8h) e os dados do usuário (`id`, `name`, `email`, `role`).
+- Endpoints que exigem login usam o header `Authorization: Bearer <token>`; `GET /auth/me` é o endpoint de referência para validar o token.
+- **Não há cadastro público de usuário nesta fase** — contas são criadas direto no banco (senha com hash bcrypt via `app.security.hash_password`). Um endpoint de cadastro fica para uma fase futura, se necessário.
+- Os endpoints de `tickets` ainda não exigem autenticação — isso é plugado junto com a Fase 4 (frontend), quando a fila do técnico passa a chamar a API com o token do login.
 
 ---
 

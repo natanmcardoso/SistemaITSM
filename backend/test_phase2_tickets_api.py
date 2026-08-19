@@ -22,8 +22,14 @@ client = TestClient(app)
 
 def run():
     db = SessionLocal()
-    requester = User(name="Usuário API Teste", email="teste.api.requester@example.com", role="end_user")
-    technician = User(name="Técnico API Teste", email="teste.api.technician@example.com", role="technician")
+    requester = User(
+        name="Usuário API Teste", email="teste.api.requester@example.com", role="end_user",
+        password_hash="x",
+    )
+    technician = User(
+        name="Técnico API Teste", email="teste.api.technician@example.com", role="technician",
+        password_hash="x",
+    )
     category = Category(name="Hardware", default_sla_hours=24)
     db.add_all([requester, technician, category])
     db.commit()

@@ -15,8 +15,14 @@ def run():
     db = SessionLocal()
     try:
         # --- users ---
-        requester = User(name="Usuário Teste", email="teste.requester@example.com", role="end_user")
-        technician = User(name="Técnico Teste", email="teste.technician@example.com", role="technician")
+        requester = User(
+            name="Usuário Teste", email="teste.requester@example.com", role="end_user",
+            password_hash="x",
+        )
+        technician = User(
+            name="Técnico Teste", email="teste.technician@example.com", role="technician",
+            password_hash="x",
+        )
         db.add_all([requester, technician])
         db.flush()
         assert requester.id is not None

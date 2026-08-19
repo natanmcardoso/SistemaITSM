@@ -7,6 +7,27 @@ from pydantic import BaseModel, ConfigDict
 
 TicketStatus = Literal["open", "in_progress", "resolved", "closed"]
 TicketPriority = Literal["low", "medium", "high", "critical"]
+UserRole = Literal["end_user", "technician", "manager"]
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    email: str
+    role: UserRole
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
 
 
 class InteractionOut(BaseModel):

@@ -20,7 +20,10 @@ client = TestClient(app)
 
 def run():
     db = SessionLocal()
-    requester = User(name="Usuário IA Teste", email="teste.ia.requester@example.com", role="end_user")
+    requester = User(
+        name="Usuário IA Teste", email="teste.ia.requester@example.com", role="end_user",
+        password_hash="x",
+    )
     cat_hardware = Category(name="Hardware", default_sla_hours=24)
     cat_acesso = Category(name="Acesso", default_sla_hours=8)
     db.add_all([requester, cat_hardware, cat_acesso])
