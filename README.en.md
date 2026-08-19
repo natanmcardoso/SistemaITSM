@@ -42,6 +42,42 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 
 ---
 
+## Architecture
+
+The system is organized into 6 domains — 3 flow-oriented (how a ticket comes in, is managed, and goes out) and 3 domain-oriented (what the system covers on each front):
+
+```mermaid
+graph TB
+    subgraph SISTEMA["ITSM System"]
+        subgraph FLUXO[" "]
+            direction LR
+            ENTRADA["Intake<br/><small>Implemented</small>"]
+            GESTAO["Management<br/><small>Implemented</small>"]
+            SAIDA["Output<br/><small>Partial</small>"]
+        end
+        subgraph DOMINIO[" "]
+            direction LR
+            ITSM["ITSM<br/><small>Partial</small>"]
+            ATIVOS["Assets<br/><small>Implemented</small>"]
+            IA["AI<br/><small>Partial</small>"]
+        end
+    end
+
+    classDef done fill:#9FE1CB,stroke:#0F6E56,color:#04342C
+    classDef partial fill:#FAC775,stroke:#854F0B,color:#412402
+    class ENTRADA,GESTAO,ATIVOS done
+    class SAIDA,ITSM,IA partial
+```
+
+- **Intake** — portal (new ticket) and REST API
+- **Management** — queue, SLA, AI-suggested priority, status workflow, problem-based escalation
+- **Output** — resolution via AI suggestion, knowledge base (rule-based automation and notifications not yet implemented)
+- **ITSM** — incident, request, problem (change/release/catalog out of scope, portfolio-scope decision)
+- **Assets** — basic CMDB (Phase 6)
+- **AI** — classification, category routing, KB suggestion (chatbot and sentiment analysis out of scope, portfolio-scope decision)
+
+---
+
 ## Roadmap
 
 - [x] Phase 1 — Data model + migrations

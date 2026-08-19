@@ -42,6 +42,42 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 
 ---
 
+## Arquitetura
+
+O sistema é organizado em 6 domínios — 3 de fluxo (como um chamado entra, é gerido e sai) e 3 de domínio (o que o sistema cobre em cada frente):
+
+```mermaid
+graph TB
+    subgraph SISTEMA["Sistema ITSM"]
+        subgraph FLUXO[" "]
+            direction LR
+            ENTRADA["Entrada<br/><small>Implementado</small>"]
+            GESTAO["Gestão<br/><small>Implementado</small>"]
+            SAIDA["Saída<br/><small>Parcial</small>"]
+        end
+        subgraph DOMINIO[" "]
+            direction LR
+            ITSM["ITSM<br/><small>Parcial</small>"]
+            ATIVOS["Ativos<br/><small>Implementado</small>"]
+            IA["IA<br/><small>Parcial</small>"]
+        end
+    end
+
+    classDef done fill:#9FE1CB,stroke:#0F6E56,color:#04342C
+    classDef partial fill:#FAC775,stroke:#854F0B,color:#412402
+    class ENTRADA,GESTAO,ATIVOS done
+    class SAIDA,ITSM,IA partial
+```
+
+- **Entrada** — portal (novo chamado) e API REST
+- **Gestão** — fila, SLA, prioridade sugerida por IA, workflow de status, escalonamento por problema
+- **Saída** — resolução via sugestão da IA, base de conhecimento (automação por regras e notificações ainda não implementadas)
+- **ITSM** — incidente, requisição, problema (mudança/release/catálogo fora de escopo, decisão de portfólio)
+- **Ativos** — CMDB básico (Fase 6)
+- **IA** — classificação, roteamento por categoria, sugestão de KB (chatbot e análise de sentimento fora de escopo, decisão de portfólio)
+
+---
+
 ## Roadmap
 
 - [x] Fase 1 — Modelo de dados + migrations

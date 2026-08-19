@@ -58,7 +58,7 @@ Documento de referência completo (fluxos, modelo de dados, contrato de API): `d
   - `TicketDetailPage.tsx` passou a servir as 2 personas com o mesmo componente: técnico vê a sidebar + o painel de ações; usuário final vê só leitura (info + sugestão da IA + histórico) num header leve, sem sidebar e sem o painel de ações — controlado por `auth.user.role === "technician"`.
   - A extensão do Claude in Chrome não conectou na hora de fechar esta fase (4 tentativas); foi validada por build limpo + `curl` direto nos endpoints novos, sem fluxo completo no navegador como as fases anteriores. **Verificação visual confirmada depois pelo usuário** (rodou os dois servidores localmente e testou as telas novas) — sem ressalva.
 
-Próximo passo real: a Fase 4 (frontend) está funcionalmente e visualmente fechada — as 4 métricas centrais do design doc (§2.3) com dado real, as 4 telas com o design aprovado, o técnico consegue agir de verdade na fila, e os gaps de acompanhamento (usuário final) e busca de KB (técnico) do design doc estão fechados. Não há mais gap conhecido do design doc original (§2) em aberto. A Fase 5 (Navegação e Descoberta, evolução pós-MVP) também está fechada — filtros/busca na fila, dashboard clicável e responsivo, todas testadas. A Fase 6 (CMDB + Problem Management) também está fechada — modelo de dados, seed e dashboard, todas testadas. A Fase 8 (Ajustes de fila, busca ampliada e KB editável, pedido do usuário pós Fase 6) também está fechada — cards de prioridade clicáveis, abas separadas de fila, busca por nome e CRUD de KB, todas testadas. A Fase 9 (Tabela de chamados customizável, pedido do usuário pós Fase 8) também está fechada — colunas de data/SLA, ordenação clicável e seletor de colunas, testada. Próxima: Fase 7 (RMM próprio, futura) — só resta essa, que segue fora de escopo por enquanto.
+Próximo passo real: a Fase 4 (frontend) está funcionalmente e visualmente fechada — as 4 métricas centrais do design doc (§2.3) com dado real, as 4 telas com o design aprovado, o técnico consegue agir de verdade na fila, e os gaps de acompanhamento (usuário final) e busca de KB (técnico) do design doc estão fechados. Não há mais gap conhecido do design doc original (§2) em aberto. A Fase 5 (Navegação e Descoberta, evolução pós-MVP) também está fechada — filtros/busca na fila, dashboard clicável e responsivo, todas testadas. A Fase 6 (CMDB + Problem Management) também está fechada — modelo de dados, seed e dashboard, todas testadas. A Fase 8 (Ajustes de fila, busca ampliada e KB editável, pedido do usuário pós Fase 6) também está fechada — cards de prioridade clicáveis, abas separadas de fila, busca por nome e CRUD de KB, todas testadas. A Fase 9 (Tabela de chamados customizável, pedido do usuário pós Fase 8) também está fechada — colunas de data/SLA, ordenação clicável e seletor de colunas, testada. Próxima: Fase 10 (Configurações restantes — categorias e SLA, pedido do usuário que a Fase 8 só cobriu parcialmente com o CRUD de KB), depois Fase 11 (Administração), e só então a Fase 7 (RMM próprio, futura).
 
 Três fases novas foram decididas com o usuário (fora do design doc original, evolução pós-MVP) e ficam nesta ordem — começar pela Fase 5:
 
@@ -77,7 +77,18 @@ Três fases novas foram decididas com o usuário (fora do design doc original, e
   - ✅ Sub-fase 6.2 (seed) — `seed_dev_data.py` ganhou 3 `ASSETS` (notebook, impressora, servidor), 2 `PROBLEMS` (falha de energia em notebooks Dell, fila de impressão) e `TICKET_LINKS` vinculando 4 chamados já semeados aos dois (um 6º chamado novo foi somado só pra dar um problema com 2 chamados vinculados — demonstra o dashboard da 6.3 com dado > 1). De propósito, um dos chamados do "problema de energia" não tem `asset_id` próprio — mostra que os dois vínculos (`asset_id`/`problem_id`) são independentes. Idempotente (testei rodar 2x seguidas, sem duplicar). Testado: `test_phase6_cmdb_seed.py` (lê o banco real, não cria/apaga nada — mesmo padrão do resto do seed).
   - ✅ Sub-fase 6.3 (dashboard) — `GET /dashboard/summary` ganhou `top_assets`/`top_problems` (reaproveita o schema `CategoryCount`, mesmo shape `name`/`count`, em vez de criar `AssetCount`/`ProblemCount` só pra isso). `DashboardPage.tsx` ganhou a seção "CMDB e Problem Management" com 2 cards (mesmo estilo visual de "Top categorias"), sem link clicável pra `/fila` (não há filtro `asset_id`/`problem_id` em `GET /tickets` — fora do escopo desta fase). Novos ícones `IconServer`/`IconFlag`. Testado: `test_phase6_dashboard.py` (padrão delta antes/depois, como `test_phase4_dashboard.py`) + build limpo + verificação visual via browser automation. Fecha a Fase 6 por completo.
   - **Achado durante o teste (2ª vez na sessão, mesma causa-raiz da Fase 5):** logo após subir o código, o dashboard quebrou no browser (`Cannot read properties of undefined (reading 'length')`) e, investigando, `GET /dashboard/summary` não devolvia `top_assets`/`top_problems` mesmo com `--reload` ativo. Causa: processos `uvicorn`/reloader órfãos acumulados de reinícios anteriores na sessão (matar só o processo pai do reloader via `Stop-Process` não mata o worker filho no Windows) — múltiplos processos Python disputando a porta 8000, um deles servindo código desatualizado. Fix: matar todos os processos Python órfãos e subir **sem `--reload`**, reiniciando manualmente a cada mudança de código no backend — mais previsível neste ambiente (terminal por comando, sem processo persistente de longa duração) do que depender do watcher. Vale como lição permanente: depois de editar backend, sempre reiniciar o servidor manualmente antes de testar ao vivo, não confiar no auto-reload.
-- ⏳ **Fase 7 (futura) — RMM próprio** (agente de endpoint, inventário, acesso remoto, patch management) — mantém-se fora de escopo até as fases 5 e 6 fecharem; `asset_id` da Fase 6 já é a ponte de dados pra isso.
+- ⏳ **Fase 10 — Configurações restantes (categorias + SLA).** Pedido do usuário ainda não fechado — a Fase 8 cobriu CRUD de KB, mas não categorias nem SLA:
+  - Categorias — criar, listar, editar (`GET/POST /categories`, `PATCH /categories/{id}`)
+  - Regras de SLA — listar, editar (`GET /sla-rules`, `PATCH /sla-rules/{id}`) — não precisa criar novas, as 4 prioridades já são fixas no enum
+  - Acesso restrito a `technician`/`manager` (mesmo padrão já usado no CRUD de KB da Fase 8.4 — `require_role`)
+  - Baixo risco: reaproveita tabelas já existentes, só ganham interface de escrita.
+- ⏳ **Fase 11 — Administração.** Introduz uma 4ª role e 2 tabelas novas:
+  - `users.role` ganha o valor `admin` no enum (hoje: `end_user`/`technician`/`manager`).
+  - `groups` (`id`, `name`, `description` nullable, `created_at`) + `user_groups` (many-to-many, PK composta `user_id`+`group_id`) — organização/roteamento, **não** controla permissão.
+  - `audit_log` (`id`, `user_id` FK, `action`, `entity_type`, `entity_id`, `details` nullable, `created_at`) — trilha de auditoria.
+  - **Decisão confirmada: Opção A.** "Perfil" continua sendo o `role` fixo (agora com 4 valores), sem sistema de permissões granular (`permissions`/`role_permissions`) — RBAC configurável fica só documentado como evolução futura possível, não implementado. Admin acessa a aba via `require_role("admin")`, mesmo padrão já usado pra manager no dashboard.
+  - Endpoints novos: `GET/POST /users`, `PATCH /users/{id}`, `GET/POST /groups`, `PATCH /groups/{id}/members`, `GET /audit-log`.
+- ⏳ **Fase 7 (futura) — RMM próprio** (agente de endpoint, inventário, acesso remoto, patch management) — mantém-se fora de escopo até as fases 10 e 11 fecharem; `asset_id` da Fase 6 já é a ponte de dados pra isso.
 
 Fase 8 decidida depois da Fase 6 fechar (pedido do usuário, evolução pós-MVP — fica intercalada antes da Fase 7, que segue "futura"):
 
@@ -117,6 +128,23 @@ DATABASE_URL=postgresql://<user>:<senha>@<host>.sa-east-1.aws.neon.tech/neondb?s
 
 ---
 
+## Arquitetura — os 6 domínios
+
+Mapa de referência pra qualquer decisão de escopo futura (o que entra em qual fase, o que já foi decidido que fica de fora). Mesmo diagrama documentado no README (ambas as línguas), como imagem de arquitetura do projeto.
+
+| Domínio | Camada | Status | Cobre | Fora de escopo (decisão de portfólio) |
+|---|---|---|---|---|
+| Entrada | Fluxo | ✅ Implementado | Portal (novo chamado), API REST | E-mail, chat, WhatsApp, telefone |
+| Gestão | Fluxo | ✅ Implementado | Fila, SLA, prioridade por IA, workflow de status, escalonamento por problema | Fluxo de aprovação formal |
+| Saída | Fluxo | 🟡 Parcial | Resolução via sugestão da IA, KB | Automação por regras, notificações |
+| ITSM | Domínio | 🟡 Parcial | Incidente, requisição, problema | Mudança, release, catálogo de serviços |
+| Ativos | Domínio | ✅ Implementado | CMDB básico (Fase 6) | Inventário completo, RMM (agente de endpoint) |
+| IA | Domínio | 🟡 Parcial | Classificação, roteamento por categoria, sugestão de KB | Chatbot, análise de sentimento, resumo executivo |
+
+Qualquer novo pedido de feature deve primeiro ser localizado nessa tabela — se cair numa célula "fora de escopo", é sinal de re-discutir antes de implementar (mesmo raciocínio já aplicado a telefonia/multicanal, gestão de mudança, chatbot e RBAC granular ao longo do projeto).
+
+---
+
 ## Regra de execução — OBRIGATÓRIA
 
 **Sempre trabalhar em fases pequenas. Nunca implementar múltiplas partes do sistema de uma vez.**
@@ -146,12 +174,14 @@ Não pular etapas, não adiantar código de fases futuras, não assumir que "vai
 7. ✅ CMDB + Problem Management — migrations de `assets`/`problems`, `asset_id`/`problem_id` em `tickets`, seed e contagem no dashboard → todas testadas.
 8. ✅ Ajustes de fila, busca ampliada e KB editável (pedido do usuário, pós Fase 6) — cards de prioridade clicáveis, abas separadas de fila, busca por nome, CRUD de KB → todas testadas.
 9. ✅ Tabela de chamados customizável (pedido do usuário, pós Fase 8) — colunas de data/SLA, ordenação clicável, seletor de colunas → testada.
-10. ⏳ RMM próprio (futura) — fora de escopo por enquanto; é a única fase que resta.
+10. ⏳ Configurações restantes — CRUD de categorias e de regras de SLA (o CRUD de KB já saiu na Fase 8) → testar: criar/editar cada um via API, conferir reflexo no fluxo de triagem/dashboard.
+11. ⏳ Administração — `role admin`, `groups`/`user_groups`, `audit_log` → testar: criar usuário/grupo via API, conferir que só `role=admin` acessa, conferir que ações relevantes geram entrada no audit_log.
+12. ⏳ RMM próprio (futura) — fora de escopo até 10 e 11 fecharem.
 
 ---
 
 ## Pontos de atenção do design (não perder ao implementar)
 
 - Sempre salvar `ai_suggested_priority` e `ai_suggested_category_id` separados do valor final (`priority`, `category_id`) — é o que permite medir o acerto da IA depois. Sem isso, o dashboard de impacto da IA não tem dado real.
-- Três personas no MVP: usuário final, técnico, gestor — cada uma com fluxo e tela próprios (ver `design-itsm-mvp.md`)
+- Três personas no MVP original: usuário final, técnico, gestor — cada uma com fluxo e tela próprios (ver `design-itsm-mvp.md`). Uma 4ª, `admin`, entra na Fase 11 (Administração) — acesso restrito a `groups`/`user_groups`/`audit_log`, sem sistema de permissões granular (Opção A confirmada — ver Fase 11 acima).
 - RMM (agente de endpoint, acesso remoto, patch management) está **fora do escopo** desta fase — não implementar nem preparar estrutura pra isso ainda
