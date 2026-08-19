@@ -276,7 +276,7 @@ export function QueuePage() {
   const filteredResults = sortByPriority(tickets ?? []);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
       <Sidebar
         groupLabel="Chamados"
         navItems={[
@@ -291,7 +291,7 @@ export function QueuePage() {
         }}
       />
 
-      <div className="min-w-0 flex-1 px-8 py-7">
+      <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
         <div className="mb-6">
           <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">Fila do técnico</h1>
           <p className="mt-0.5 text-sm text-slate-500">Logado como {auth.user.name}</p>

@@ -93,7 +93,7 @@ export function DashboardPage() {
       : null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
       <Sidebar
         groupLabel="Gestão"
         navItems={[
@@ -107,7 +107,7 @@ export function DashboardPage() {
         }}
       />
 
-      <div className="min-w-0 flex-1 px-8 py-7">
+      <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
         <div className="mb-5.5">
           <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">Dashboard do gestor</h1>
           <p className="mt-0.5 text-sm text-slate-500">Logado como {auth.user.name}</p>
@@ -120,7 +120,7 @@ export function DashboardPage() {
         ) : summary ? (
           <>
             {/* Hero: % resolvido pela IA */}
-            <div className="mb-5.5 flex items-center justify-between rounded-2xl bg-gradient-to-br from-[#0F3FC4] to-primary p-6.5 text-white">
+            <div className="mb-5.5 flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-[#0F3FC4] to-primary p-6.5 text-white sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="mb-3.5 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
                   <IconSparkle width={13} height={13} className="text-white" />

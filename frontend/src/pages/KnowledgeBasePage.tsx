@@ -32,7 +32,7 @@ export function KnowledgeBasePage() {
   if (!auth) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
       <Sidebar
         groupLabel="Chamados"
         navItems={[
@@ -52,7 +52,7 @@ export function KnowledgeBasePage() {
         }}
       />
 
-      <div className="min-w-0 flex-1 px-8 py-7">
+      <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-extrabold tracking-tight text-slate-900">Base de conhecimento</h1>

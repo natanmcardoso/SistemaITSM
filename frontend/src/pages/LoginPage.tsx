@@ -29,7 +29,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-8">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-9 shadow-[0_1px_2px_rgba(16,24,40,.04),0_8px_24px_rgba(16,24,40,.08)]"

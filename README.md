@@ -18,7 +18,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Identidade visual própria aplicada nas 4 telas — sidebar azul, tipografia Plus Jakarta Sans, badges por prioridade/status (processo de design documentado no `CLAUDE.md`)
 ✅ Tela de detalhe do chamado — técnico consegue atribuir, mudar status/prioridade/categoria e registrar histórico, direto pela UI
 ✅ Acompanhamento do chamado (usuário final) + busca de KB (técnico) — fecham os últimos gaps do design doc (§2.1/§2.2)
-🚧 Fase 5 (Navegação e Descoberta) em andamento — filtros + busca na fila e dashboard clicável (métricas viram links pra fila já filtrada) já concluídos e testados
+✅ Fase 5 (Navegação e Descoberta) concluída e testada — filtros + busca na fila, dashboard clicável e as 4 telas responsivas (breakpoints Tailwind + sidebar em drawer no mobile)
 
 ---
 
@@ -49,10 +49,10 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
   - [x] Fila do técnico
   - [x] Novo chamado
   - [x] Dashboard do gestor
-- [ ] Fase 5 — Navegação e Descoberta
+- [x] Fase 5 — Navegação e Descoberta
   - [x] Filtros (status, prioridade, categoria, técnico) + busca por texto na fila do técnico
   - [x] Dashboard clicável (métricas viram links pra fila já filtrada)
-  - [ ] Responsivo (breakpoints Tailwind nas 4 telas)
+  - [x] Responsivo (breakpoints Tailwind nas telas; sidebar vira drawer no mobile)
 - [ ] Fase 6 (futura) — CMDB + Problem Management (alinhamento ITIL)
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
@@ -246,6 +246,11 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 
 - `GET /tickets` ganhou `sla=breached` — mesma definição de estouro usada em `GET /dashboard/summary.sla` (prazo no passado + status ainda aberto).
 - No dashboard do gestor, cada métrica vira link pra fila já filtrada: os pills de status (`Aberto`, `Em andamento`...) levam pra `/fila?status=`, cada categoria em "Top categorias" leva pra `/fila?category=`, e o card "SLA estourado" leva pra `/fila?sla=breached` (só quando há chamado estourado — sem link morto).
+
+### Responsivo (Fase 5 — Navegação e Descoberta)
+
+- `Sidebar.tsx` (fila, dashboard, base de conhecimento, detalhe do chamado — técnico) abaixo de `1024px` de largura vira uma topbar compacta com botão de menu, que abre a mesma navegação como um drawer deslizante — sem sidebar fixa de 256px comendo a tela do celular.
+- As demais telas (login, novo chamado, meus chamados, detalhe do chamado — usuário final) ganharam padding e cabeçalhos responsivos.
 
 ---
 

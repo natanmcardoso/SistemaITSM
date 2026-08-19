@@ -18,7 +18,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Custom visual identity applied across all 4 screens — blue sidebar, Plus Jakarta Sans typeface, priority/status badges (design process documented in `CLAUDE.md`)
 ✅ Ticket detail screen — technician can assign, change status/priority/category, and log history entries, straight from the UI
 ✅ Ticket tracking (end user) + KB search (technician) — close the design doc's last remaining gaps (§2.1/§2.2)
-🚧 Phase 5 (Navigation & Discovery) in progress — queue filters/search and a clickable dashboard (metrics become links to an already-filtered queue) already done and tested
+✅ Phase 5 (Navigation & Discovery) completed and tested — queue filters/search, a clickable dashboard, and all 4 screens made responsive (Tailwind breakpoints + a mobile drawer sidebar)
 
 ---
 
@@ -49,10 +49,10 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
   - [x] Technician queue
   - [x] New ticket
   - [x] Manager dashboard
-- [ ] Phase 5 — Navigation & Discovery
+- [x] Phase 5 — Navigation & Discovery
   - [x] Filters (status, priority, category, technician) + text search on the technician queue
   - [x] Clickable dashboard (metrics become links to an already-filtered queue)
-  - [ ] Responsive (Tailwind breakpoints across all 4 screens)
+  - [x] Responsive (Tailwind breakpoints; sidebar becomes a mobile drawer)
 - [ ] Phase 6 (future) — CMDB + Problem Management (ITIL alignment)
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
@@ -246,6 +246,11 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 
 - `GET /tickets` gained `sla=breached` — the same breach definition used by `GET /dashboard/summary.sla` (deadline in the past + status still open).
 - On the manager dashboard, every metric now links to an already-filtered queue: the status pills (`Aberto`, `Em andamento`...) link to `/fila?status=`, each entry under "Top categories" links to `/fila?category=`, and the "SLA breached" card links to `/fila?sla=breached` (only when there's at least one breached ticket — no dead link).
+
+### Responsive (Phase 5 — Navigation & Discovery)
+
+- `Sidebar.tsx` (queue, dashboard, knowledge base, ticket detail — technician) collapses below `1024px` wide into a compact topbar with a menu button, which opens the same navigation as a slide-in drawer — no more fixed 256px sidebar eating up a phone screen.
+- The remaining screens (login, new ticket, my tickets, ticket detail — end user) got responsive padding and headers.
 
 ---
 

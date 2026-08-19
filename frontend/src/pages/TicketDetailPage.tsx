@@ -307,7 +307,7 @@ export function TicketDetailPage() {
 
   if (isTechnician) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
         <Sidebar
           groupLabel="Chamados"
           navItems={[
@@ -321,7 +321,7 @@ export function TicketDetailPage() {
             navigate("/login");
           }}
         />
-        <div className="min-w-0 flex-1 px-8 py-7">
+        <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
           <Link to="/fila" className="mb-4 inline-block text-sm font-bold text-slate-500 hover:text-slate-700">
             ← Voltar pra fila
           </Link>
@@ -359,9 +359,9 @@ function MinimalChrome({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50 px-8 py-7">
+    <div className="min-h-screen bg-slate-50 px-4 py-5 sm:px-8 sm:py-7">
       <div className="mx-auto max-w-3xl">
-        <header className="mb-4 flex items-center justify-between">
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link to={backHref} className="text-sm font-bold text-slate-500 hover:text-slate-700">
             ← Voltar pra meus chamados
           </Link>

@@ -33,9 +33,9 @@ export function MeusChamadosPage() {
   if (!auth) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-8 py-7">
+    <div className="min-h-screen bg-slate-50 px-4 py-5 sm:px-8 sm:py-7">
       <div className="mx-auto max-w-3xl">
-        <header className="mb-7 flex items-center justify-between">
+        <header className="mb-7 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="mb-1 flex items-center gap-2.5">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary">
