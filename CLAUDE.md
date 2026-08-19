@@ -10,12 +10,18 @@ Documento de referência completo (fluxos, modelo de dados, contrato de API): `d
 
 ## Status atual
 
-Nenhum código foi executado ainda. O que já existe:
-- Banco Postgres criado na Neon (projeto `Sistema ITSM`, região `sa-east-1`)
-- `neonctl` inicializado localmente
-- Connection string disponível (guardada em `.env`, **nunca commitar**)
+- Banco Postgres criado na Neon (projeto `Sistema ITSM`, região `sa-east-1`), `neonctl` inicializado, connection string em `.env` (**nunca commitar**)
+- ✅ Fase 1 — modelo de dados + migrations (testada)
+- ✅ Fase 2 — endpoints core de `tickets` (CRUD, sem IA) (testada)
+- ✅ Fase 3 — triagem por IA plugada na criação de chamados (testada; modo mock por padrão, live com `ANTHROPIC_API_KEY`)
+- ✅ Fase 4.0 — autenticação (login + JWT) (testada) — sub-fase levantada ao iniciar a Fase 4: o design doc lista `/auth/login` mas nenhuma das 4 fases originais cobria implementá-lo. Escopo: `password_hash` em `users`, hashing bcrypt, JWT (`app/security.py`), `POST /auth/login`, `GET /auth/me`. **Os endpoints de `tickets` ainda não exigem token** — isso é plugado junto com a tela de fila do técnico, não antes.
+- `JWT_SECRET` gerado e salvo em `.env` (**nunca commitar**)
 
-Próximo passo real: iniciar a Fase 1 (modelo de dados + migrations) — ver seção "Ordem de execução".
+Próximo passo real: Fase 4 (frontend) — primeira tela: fila do técnico. Decisões pendentes antes de começar: stack de frontend (Vite? roteador? styling?) e wiring do token JWT (login mock simples para escolher o técnico, já que não há endpoint de cadastro de usuário — contas de teste são criadas direto no banco).
+
+Decisões já tomadas para a Fase 4 (não reabrir sem motivo):
+- Sem tela de login "de verdade" por ora — um seletor simples de usuário/técnico no frontend, chamando `POST /auth/login` com credenciais de contas semeadas direto no banco.
+- `GET /users` e `GET /categories` **não serão criados agora** — o frontend consulta esses dados direto no Postgres (via Neon) enquanto não houver uma fase dedicada a expor esses endpoints.
 
 ---
 
@@ -55,10 +61,11 @@ Não pular etapas, não adiantar código de fases futuras, não assumir que "vai
 
 ## Ordem de execução recomendada
 
-1. Modelo de dados + migrations (Postgres) → testar: criar tabelas, rodar migration, inserir registro de teste
-2. Endpoints core de `tickets` (CRUD), sem IA ainda → testar: criar/listar/atualizar chamado via API
-3. Plugar o serviço de triagem por IA (reaproveitando lógica do AIOps Copilot) → testar: chamado novo recebe categoria/prioridade sugerida corretamente
-4. Frontend — fila do técnico → tela de novo chamado → dashboard do gestor, nessa ordem → testar cada tela isoladamente antes de integrar
+1. ✅ Modelo de dados + migrations (Postgres) → testar: criar tabelas, rodar migration, inserir registro de teste
+2. ✅ Endpoints core de `tickets` (CRUD), sem IA ainda → testar: criar/listar/atualizar chamado via API
+3. ✅ Plugar o serviço de triagem por IA (reaproveitando lógica do AIOps Copilot) → testar: chamado novo recebe categoria/prioridade sugerida corretamente
+4. ✅ Autenticação (login + JWT) — sub-fase 4.0, pré-requisito do frontend → testado: login certo/errado, `/auth/me` com/sem token
+5. 🚧 Frontend — fila do técnico → tela de novo chamado → dashboard do gestor, nessa ordem → testar cada tela isoladamente antes de integrar. Ao chegar na fila do técnico, plugar o guard de autenticação (`get_current_user`/`require_role`) nos endpoints de `tickets` que ainda estão abertos.
 
 ---
 
