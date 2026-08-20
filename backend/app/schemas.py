@@ -166,6 +166,26 @@ class SLARuleUpdate(BaseModel):
     resolution_time_hours: Optional[int] = Field(default=None, gt=0)
 
 
+class GroupOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: Optional[str]
+    created_at: datetime
+    member_ids: list[uuid.UUID] = []
+
+
+class GroupCreate(BaseModel):
+    name: str = Field(min_length=1)
+    description: Optional[str] = None
+
+
+class GroupMembersUpdate(BaseModel):
+    """Substitui o conjunto de membros por completo — a lista enviada vira a
+    lista final (mais simples que endpoints separados de adicionar/remover)."""
+
+    member_ids: list[uuid.UUID]
+
+
 class AuditLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
