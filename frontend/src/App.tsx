@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { homeRouteForRole } from "./auth/routing";
+import { ConfigPage } from "./pages/ConfigPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -79,6 +80,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <DashboardPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/configuracoes"
+        element={
+          <RequireAuth>
+            <ConfigPage />
           </RequireAuth>
         }
       />

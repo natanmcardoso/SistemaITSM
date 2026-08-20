@@ -22,6 +22,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 6 (CMDB + Problem Management) completed and tested — `assets`/`problems` tables, seed data linking tickets to both, dashboard showing "N tickets linked" per asset/problem (no dedicated CRUD screen, by design)
 ✅ Phase 8 (Queue tweaks, wider search, editable KB) completed and tested — clickable priority cards, "My tickets"/"General queue" as their own sidebar tabs, search by requester/technician name, creating and editing knowledge-base articles
 ✅ Phase 9 (Customizable ticket table) completed and tested — opened-date and SLA columns, clickable sortable headers, a column-visibility picker (choice saved per browser)
+✅ Phase 10 (Remaining settings) completed and tested — categories CRUD, SLA rule editing, and a new `/configuracoes` screen for technician/manager
 
 ---
 
@@ -102,6 +103,11 @@ graph TB
   - [x] Opened-date and SLA columns
   - [x] Clickable sortable headers
   - [x] Column-visibility picker (saved per browser)
+- [x] Phase 10 — Remaining settings
+  - [x] Categories CRUD (create, list, edit)
+  - [x] SLA rule editing
+  - [x] `/configuracoes` screen, restricted to technician/manager
+- [ ] Phase 11 (future) — Administration (`admin` role, groups, audit log)
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -238,6 +244,11 @@ GET    /kb-articles/{id}            → detail for one article — requires logi
 POST   /kb-articles                 → creates an article — requires login with role=technician
 PATCH  /kb-articles/{id}            → edits an article (partial) — requires login with role=technician
 GET    /dashboard/summary           → manager dashboard metrics — requires login with role=manager
+GET    /categories                  → list categories — requires login with role=technician/manager
+POST   /categories                  → create category (blocks duplicate name, case-insensitive) — requires login with role=technician/manager
+PATCH  /categories/{id}             → edit category (partial) — requires login with role=technician/manager
+GET    /sla-rules                   → list the 4 SLA rules (one per priority) — requires login with role=technician/manager
+PATCH  /sla-rules/{id}               → edit response/resolution deadlines (partial; priority is not editable) — requires login with role=technician/manager
 ```
 
 ### AI triage (Phase 3)
@@ -341,6 +352,13 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 - **New columns:** "Opened on" and "SLA" on the "My tickets"/"General queue" table — SLA shows "(breached)" in red when the deadline has passed and the ticket is still open.
 - **Sort by column:** clicking a header sorts by that column; clicking again flips the direction (▲/▼). With no click, the list stays sorted by priority, as before.
 - **Pick your own visible columns:** a "Columns" button above the table lets you hide any combination of columns (at least 1 always stays visible) — the choice is saved in the browser and applies to both screens.
+
+### Remaining settings (Phase 10)
+
+- New `/configuracoes` screen, restricted to `technician`/`manager` (same `require_role` pattern already used for the KB CRUD) — accessible by both personas who manage the system, same screen with a different sidebar depending on role.
+- **Categories tab:** list, create, and edit (`GET/POST /categories`, `PATCH /categories/{id}`). A duplicate name (case-insensitive) is blocked with a 400 — extra safeguard, since AI triage matches the suggested category by name, so duplicate names would break that match.
+- **SLA rules tab:** lists the 4 rules (one per priority, fixed in the enum) and edits each one's response/resolution deadline (`GET/PATCH /sla-rules`). No create/delete — only adjusts the deadlines already seeded.
+- `GET /categories` now genuinely exists as of this phase — the screen queries the API directly instead of the manual mirror `frontend/src/devData.ts` (which stays in use on the other screens that already depended on it).
 
 ---
 

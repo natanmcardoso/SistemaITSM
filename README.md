@@ -22,6 +22,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 6 (CMDB + Problem Management) concluída e testada — tabelas `assets`/`problems`, seed vinculando chamados a ambos, dashboard mostrando "N chamados vinculados" por ativo/problema (sem tela de CRUD dedicada, por design)
 ✅ Fase 8 (Ajustes de fila, busca ampliada e KB editável) concluída e testada — cards de prioridade clicáveis, "Meus chamados"/"Fila geral" em abas próprias na sidebar, busca por nome de solicitante/técnico, criação e edição de artigos da base de conhecimento
 ✅ Fase 9 (Tabela de chamados customizável) concluída e testada — colunas de data de abertura e SLA, cabeçalhos clicáveis pra ordenar, seletor de colunas visíveis (escolha salva por navegador)
+✅ Fase 10 (Configurações restantes) concluída e testada — CRUD de categorias, edição de regras de SLA e nova tela `/configuracoes` pra técnico/gestor
 
 ---
 
@@ -102,6 +103,11 @@ graph TB
   - [x] Colunas de data de abertura e SLA
   - [x] Cabeçalhos clicáveis pra ordenar
   - [x] Seletor de colunas visíveis (persistido por navegador)
+- [x] Fase 10 — Configurações restantes
+  - [x] CRUD de categorias (criar, listar, editar)
+  - [x] Edição de regras de SLA
+  - [x] Tela `/configuracoes`, restrita a técnico/gestor
+- [ ] Fase 11 (futura) — Administração (`role admin`, grupos, log de auditoria)
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -238,6 +244,11 @@ GET    /kb-articles/{id}            → detalhe de um artigo — requer login
 POST   /kb-articles                 → cria artigo — requer login com role=technician
 PATCH  /kb-articles/{id}            → edita artigo (parcial) — requer login com role=technician
 GET    /dashboard/summary           → métricas do dashboard do gestor — requer login com role=manager
+GET    /categories                  → lista categorias — requer login com role=technician/manager
+POST   /categories                  → cria categoria (barra nome duplicado, case-insensitive) — requer login com role=technician/manager
+PATCH  /categories/{id}             → edita categoria (parcial) — requer login com role=technician/manager
+GET    /sla-rules                   → lista as 4 regras de SLA (uma por prioridade) — requer login com role=technician/manager
+PATCH  /sla-rules/{id}               → edita prazos de resposta/resolução (parcial; priority não é editável) — requer login com role=technician/manager
 ```
 
 ### Triagem por IA (Fase 3)
@@ -341,6 +352,13 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 - **Novas colunas:** "Aberto em" e "SLA" na tabela de "Meus chamados"/"Fila geral" — SLA mostra "(estourado)" em vermelho quando o prazo passou e o chamado ainda está aberto.
 - **Ordenação por coluna:** clique no cabeçalho ordena por aquela coluna; clique de novo inverte a direção (▲/▼). Sem clique nenhum, a lista continua ordenada por prioridade, como sempre.
 - **Colunas visíveis à sua escolha:** botão "Colunas" acima da tabela deixa esconder qualquer combinação de colunas (sempre fica pelo menos 1 visível) — a escolha é salva no navegador e vale pras duas telas.
+
+### Configurações restantes (Fase 10)
+
+- Nova tela `/configuracoes`, restrita a `technician`/`manager` (mesmo padrão de `require_role` já usado no CRUD de KB) — acessível pelas duas personas que gerenciam o sistema, mesma tela com sidebar diferente conforme o role.
+- **Aba Categorias:** lista, cria e edita (`GET/POST /categories`, `PATCH /categories/{id}`). Nome duplicado (case-insensitive) é barrado com 400 — proteção extra: a triagem por IA casa a categoria sugerida por nome, então nomes duplicados quebrariam esse casamento.
+- **Aba Regras de SLA:** lista as 4 regras (uma por prioridade, fixas no enum) e edita prazo de resposta/resolução de cada uma (`GET/PATCH /sla-rules`). Sem criar/excluir — só ajusta os prazos já semeados.
+- `GET /categories` passou a existir de verdade nesta fase — a tela consulta a API direto em vez do espelho manual `frontend/src/devData.ts` (que continua em uso nas outras telas que já dependiam dele).
 
 ---
 

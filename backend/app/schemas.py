@@ -109,6 +109,43 @@ class KBArticleUpdate(BaseModel):
     category_id: Optional[uuid.UUID] = None
 
 
+class CategoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    default_sla_hours: int
+
+
+class CategoryCreate(BaseModel):
+    name: str = Field(min_length=1)
+    default_sla_hours: int = Field(gt=0)
+
+
+class CategoryUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial (mesmo padrão de TicketUpdate)."""
+
+    name: Optional[str] = Field(default=None, min_length=1)
+    default_sla_hours: Optional[int] = Field(default=None, gt=0)
+
+
+class SLARuleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    priority: TicketPriority
+    response_time_hours: int
+    resolution_time_hours: int
+
+
+class SLARuleUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial. `priority` não é editável
+    (é a chave que identifica a regra, única por enum — Fase 10)."""
+
+    response_time_hours: Optional[int] = Field(default=None, gt=0)
+    resolution_time_hours: Optional[int] = Field(default=None, gt=0)
+
+
 class CategoryCount(BaseModel):
     name: str
     count: int

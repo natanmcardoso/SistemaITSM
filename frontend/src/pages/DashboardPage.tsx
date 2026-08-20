@@ -2,11 +2,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, getDashboardSummary } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import { managerNavItems } from "../components/managerNavItems";
 import { Sidebar } from "../components/Sidebar";
 import { StatusBadge } from "../components/StatusBadge";
 import {
   IconAlertTriangle,
-  IconChart,
   IconFlag,
   IconLayers,
   IconServer,
@@ -105,9 +105,7 @@ export function DashboardPage() {
     <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
       <Sidebar
         groupLabel="Gestão"
-        navItems={[
-          { label: "Dashboard", icon: <IconChart width={18} height={18} />, href: "/dashboard", active: true },
-        ]}
+        navItems={managerNavItems("/dashboard")}
         userName={auth.user.name}
         userRoleLabel="Gestor(a)"
         onSignOut={() => {

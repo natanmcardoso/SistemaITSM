@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, dashboard, kb_articles, tickets
+from app.routers import auth, categories, dashboard, kb_articles, sla_rules, tickets
 
 app = FastAPI(title="Sistema ITSM API")
 
@@ -19,6 +19,8 @@ app.include_router(auth.router)
 app.include_router(tickets.router)
 app.include_router(dashboard.router)
 app.include_router(kb_articles.router)
+app.include_router(categories.router)
+app.include_router(sla_rules.router)
 
 
 @app.get("/health")

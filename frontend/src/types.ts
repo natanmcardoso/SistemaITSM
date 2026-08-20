@@ -112,3 +112,32 @@ export interface KBArticleUpdate {
   content?: string;
   category_id?: string;
 }
+
+// Fase 10 (Configurações — categorias + SLA)
+export interface CategoryOut {
+  id: string;
+  name: string;
+  default_sla_hours: number;
+}
+
+export interface CategoryCreate {
+  name: string;
+  default_sla_hours: number;
+}
+
+export interface CategoryUpdate {
+  name?: string;
+  default_sla_hours?: number;
+}
+
+export interface SLARuleOut {
+  id: string;
+  priority: TicketPriority;
+  response_time_hours: number;
+  resolution_time_hours: number;
+}
+
+export interface SLARuleUpdate {
+  response_time_hours?: number;
+  resolution_time_hours?: number;
+}

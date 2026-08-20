@@ -1,9 +1,14 @@
 import type {
+  CategoryCreate,
+  CategoryOut,
+  CategoryUpdate,
   DashboardSummary,
   InteractionOut,
   KBArticleCreate,
   KBArticleOut,
   KBArticleUpdate,
+  SLARuleOut,
+  SLARuleUpdate,
   TicketCreate,
   TicketDetailOut,
   TicketOut,
@@ -116,6 +121,31 @@ export function addInteraction(token: string, ticketId: string, content: string)
     { method: "POST", body: JSON.stringify({ content }) },
     token,
   );
+}
+
+// Fase 10 (Configurações — categorias + SLA), restrito a technician/manager no backend.
+export function listCategories(token: string): Promise<CategoryOut[]> {
+  return request<CategoryOut[]>("/categories", { method: "GET" }, token);
+}
+
+export function createCategory(token: string, payload: CategoryCreate): Promise<CategoryOut> {
+  return request<CategoryOut>("/categories", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function updateCategory(token: string, categoryId: string, payload: CategoryUpdate): Promise<CategoryOut> {
+  return request<CategoryOut>(
+    `/categories/${categoryId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function listSlaRules(token: string): Promise<SLARuleOut[]> {
+  return request<SLARuleOut[]>("/sla-rules", { method: "GET" }, token);
+}
+
+export function updateSlaRule(token: string, ruleId: string, payload: SLARuleUpdate): Promise<SLARuleOut> {
+  return request<SLARuleOut>(`/sla-rules/${ruleId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
 }
 
 export { ApiError };
