@@ -2,7 +2,7 @@
 
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 export type TicketPriority = "low" | "medium" | "high" | "critical";
-export type UserRole = "end_user" | "technician" | "manager";
+export type UserRole = "end_user" | "technician" | "manager" | "admin";
 
 export interface UserOut {
   id: string;
@@ -140,4 +140,44 @@ export interface SLARuleOut {
 export interface SLARuleUpdate {
   response_time_hours?: number;
   resolution_time_hours?: number;
+}
+
+// Fase 11 (Administração — usuários, grupos, auditoria)
+export interface UserCreate {
+  name: string;
+  email: string;
+  role: UserRole;
+  password: string;
+}
+
+export interface UserUpdate {
+  name?: string;
+  role?: UserRole;
+}
+
+export interface GroupOut {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  member_ids: string[];
+}
+
+export interface GroupCreate {
+  name: string;
+  description?: string;
+}
+
+export interface GroupMembersUpdate {
+  member_ids: string[];
+}
+
+export interface AuditLogOut {
+  id: string;
+  user_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: string | null;
+  created_at: string;
 }

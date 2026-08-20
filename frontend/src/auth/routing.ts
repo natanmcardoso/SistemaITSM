@@ -4,5 +4,6 @@ import type { UserRole } from "../types";
 export function homeRouteForRole(role: UserRole): string {
   if (role === "end_user") return "/novo-chamado";
   if (role === "manager") return "/dashboard";
+  if (role === "admin") return "/admin";
   return "/fila";
 }

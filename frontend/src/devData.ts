@@ -9,7 +9,7 @@
 export interface LoginAccount {
   name: string;
   email: string;
-  role: "technician" | "end_user" | "manager";
+  role: "technician" | "end_user" | "manager" | "admin";
 }
 
 // Senha é a mesma para todas as contas semeadas (ver seed_dev_data.py).
@@ -22,6 +22,7 @@ export const LOGIN_ACCOUNTS: LoginAccount[] = [
   { name: "João Pereira", email: "joao.pereira@itsm.dev", role: "end_user" },
   { name: "Marina Alves", email: "marina.alves@itsm.dev", role: "end_user" },
   { name: "Beatriz Lima", email: "beatriz.lima@itsm.dev", role: "manager" },
+  { name: "Diego Nascimento", email: "diego.nascimento@itsm.dev", role: "admin" },
 ];
 
 export const CATEGORY_NAMES: Record<string, string> = {
@@ -37,6 +38,7 @@ export const USER_NAMES: Record<string, string> = {
   "007cb854-e533-4417-a44e-27e7565f00d9": "Beatriz Lima",
   "08d7203b-517c-4988-ad51-2ad3ea3f4aa4": "João Pereira",
   "867206a1-db73-42e1-900e-b5b04d2ad40e": "Marina Alves",
+  "ab7129bc-683d-4f3d-8af1-c2bb3189e8c7": "Diego Nascimento",
 };
 
 // Subconjunto de USER_NAMES só com os técnicos — usado no filtro "técnico" da

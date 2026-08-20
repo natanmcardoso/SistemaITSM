@@ -23,6 +23,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 8 (Ajustes de fila, busca ampliada e KB editável) concluída e testada — cards de prioridade clicáveis, "Meus chamados"/"Fila geral" em abas próprias na sidebar, busca por nome de solicitante/técnico, criação e edição de artigos da base de conhecimento
 ✅ Fase 9 (Tabela de chamados customizável) concluída e testada — colunas de data de abertura e SLA, cabeçalhos clicáveis pra ordenar, seletor de colunas visíveis (escolha salva por navegador)
 ✅ Fase 10 (Configurações restantes) concluída e testada — CRUD de categorias, edição de regras de SLA e nova tela `/configuracoes` pra técnico/gestor
+✅ Fase 11 (Administração) concluída e testada — 4ª persona (`admin`), CRUD de usuários e grupos, trilha de auditoria, nova tela `/admin`
 
 ---
 
@@ -40,6 +41,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 - **Usuário final** — abre chamados, recebe sugestão automática da IA (categoria, prioridade, artigo da base de conhecimento)
 - **Técnico (N1/N2)** — atende fila já triada pela IA, pode reclassificar
 - **Gestor/supervisor** — acompanha dashboard de SLA, volume e impacto da IA (% resolvido sem intervenção humana)
+- **Admin** (Fase 11) — gerencia usuários, grupos e consulta a trilha de auditoria; "perfil" continua sendo o `role` fixo, sem sistema de permissões granular
 
 ---
 
@@ -107,7 +109,11 @@ graph TB
   - [x] CRUD de categorias (criar, listar, editar)
   - [x] Edição de regras de SLA
   - [x] Tela `/configuracoes`, restrita a técnico/gestor
-- [ ] Fase 11 (futura) — Administração (`role admin`, grupos, log de auditoria)
+- [x] Fase 11 — Administração
+  - [x] 4ª role, `admin`, no enum `user_role`
+  - [x] `groups`/`user_groups` (organização/roteamento, não controla permissão) + `audit_log`
+  - [x] CRUD de usuários e grupos, trilha de auditoria (só leitura)
+  - [x] Tela `/admin`, restrita a admin
 - [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -249,6 +255,13 @@ POST   /categories                  → cria categoria (barra nome duplicado, ca
 PATCH  /categories/{id}             → edita categoria (parcial) — requer login com role=technician/manager
 GET    /sla-rules                   → lista as 4 regras de SLA (uma por prioridade) — requer login com role=technician/manager
 PATCH  /sla-rules/{id}               → edita prazos de resposta/resolução (parcial; priority não é editável) — requer login com role=technician/manager
+GET    /users                       → lista usuários — requer login com role=admin
+POST   /users                       → cria usuário (barra e-mail duplicado) — requer login com role=admin
+PATCH  /users/{id}                  → edita usuário (parcial; só name/role) — requer login com role=admin
+GET    /groups                      → lista grupos, com member_ids — requer login com role=admin
+POST   /groups                      → cria grupo — requer login com role=admin
+PATCH  /groups/{id}/members         → substitui o conjunto de membros por completo — requer login com role=admin
+GET    /audit-log                   → lista a trilha de auditoria — requer login com role=admin
 ```
 
 ### Triagem por IA (Fase 3)
@@ -359,6 +372,13 @@ PATCH  /sla-rules/{id}               → edita prazos de resposta/resolução (p
 - **Aba Categorias:** lista, cria e edita (`GET/POST /categories`, `PATCH /categories/{id}`). Nome duplicado (case-insensitive) é barrado com 400 — proteção extra: a triagem por IA casa a categoria sugerida por nome, então nomes duplicados quebrariam esse casamento.
 - **Aba Regras de SLA:** lista as 4 regras (uma por prioridade, fixas no enum) e edita prazo de resposta/resolução de cada uma (`GET/PATCH /sla-rules`). Sem criar/excluir — só ajusta os prazos já semeados.
 - `GET /categories` passou a existir de verdade nesta fase — a tela consulta a API direto em vez do espelho manual `frontend/src/devData.ts` (que continua em uso nas outras telas que já dependiam dele).
+
+### Administração (Fase 11)
+
+- 4ª persona, `admin`, com tela própria (`/admin`) — não acumula com as telas de técnico/gestor (mesmo ponto de partida que o gestor teve até a Fase 10: 1 item de sidebar só).
+- **Aba Usuários:** lista, cria (nome, e-mail, perfil, senha inicial) e edita nome/perfil (`GET/POST /users`, `PATCH /users/{id}`). E-mail duplicado é barrado com 400. Sem troca de senha nem desativação de conta.
+- **Aba Grupos:** lista, cria e edita membros via checklist (`GET/POST /groups`, `PATCH /groups/{id}/members`). Grupo é só organização/roteamento — **não** controla permissão (Opção A: "perfil" continua sendo o `role` fixo, sem RBAC granular). `PATCH .../members` substitui o conjunto de membros por completo.
+- **Aba Auditoria:** tabela só-leitura com as ações administrativas (`GET /audit-log`) — quando, quem, ação, alvo e detalhes. Toda criação/edição de usuário ou grupo grava uma entrada, na mesma transação da mudança principal.
 
 ---
 

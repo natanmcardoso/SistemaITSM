@@ -24,6 +24,8 @@ USERS = [
     {"name": "Beatriz Lima", "email": "beatriz.lima@itsm.dev", "role": "manager"},
     {"name": "João Pereira", "email": "joao.pereira@itsm.dev", "role": "end_user"},
     {"name": "Marina Alves", "email": "marina.alves@itsm.dev", "role": "end_user"},
+    # Fase 11 (Administração) — conta pra testar a tela de admin via login.
+    {"name": "Diego Nascimento", "email": "diego.nascimento@itsm.dev", "role": "admin"},
 ]
 
 CATEGORIES = [

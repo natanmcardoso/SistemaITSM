@@ -395,7 +395,12 @@ export function ConfigPage() {
   const [tab, setTab] = useState<Tab>("categorias");
 
   if (!auth) return null;
-  if (auth.user.role === "end_user") return <Navigate to={homeRouteForRole(auth.user.role)} replace />;
+  // Restrito a technician/manager no backend (require_role) — end_user e,
+  // desde a Fase 11, admin também não têm acesso a esta tela (admin tem a
+  // própria, /admin).
+  if (auth.user.role !== "technician" && auth.user.role !== "manager") {
+    return <Navigate to={homeRouteForRole(auth.user.role)} replace />;
+  }
 
   const isTechnician = auth.user.role === "technician";
 

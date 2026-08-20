@@ -73,6 +73,13 @@ export function LoginPage() {
               </option>
             ))}
           </optgroup>
+          <optgroup label="Administradores">
+            {LOGIN_ACCOUNTS.filter((a) => a.role === "admin").map((account) => (
+              <option key={account.email} value={account.email}>
+                {account.name}
+              </option>
+            ))}
+          </optgroup>
         </select>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}

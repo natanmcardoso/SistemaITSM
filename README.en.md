@@ -23,6 +23,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 8 (Queue tweaks, wider search, editable KB) completed and tested — clickable priority cards, "My tickets"/"General queue" as their own sidebar tabs, search by requester/technician name, creating and editing knowledge-base articles
 ✅ Phase 9 (Customizable ticket table) completed and tested — opened-date and SLA columns, clickable sortable headers, a column-visibility picker (choice saved per browser)
 ✅ Phase 10 (Remaining settings) completed and tested — categories CRUD, SLA rule editing, and a new `/configuracoes` screen for technician/manager
+✅ Phase 11 (Administration) completed and tested — 4th persona (`admin`), users and groups CRUD, audit trail, new `/admin` screen
 
 ---
 
@@ -40,6 +41,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 - **End user** — opens tickets, gets automatic AI suggestions (category, priority, knowledge base article)
 - **Technician (L1/L2)** — handles a queue already triaged by AI, can reclassify
 - **Manager/supervisor** — tracks SLA dashboard, volume, and AI impact (% resolved without human intervention)
+- **Admin** (Phase 11) — manages users and groups, reviews the audit trail; "profile" stays the fixed `role`, no granular permission system
 
 ---
 
@@ -107,7 +109,11 @@ graph TB
   - [x] Categories CRUD (create, list, edit)
   - [x] SLA rule editing
   - [x] `/configuracoes` screen, restricted to technician/manager
-- [ ] Phase 11 (future) — Administration (`admin` role, groups, audit log)
+- [x] Phase 11 — Administration
+  - [x] 4th role, `admin`, in the `user_role` enum
+  - [x] `groups`/`user_groups` (organization/routing, doesn't control permission) + `audit_log`
+  - [x] Users and groups CRUD, audit trail (read-only)
+  - [x] `/admin` screen, restricted to admin
 - [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -249,6 +255,13 @@ POST   /categories                  → create category (blocks duplicate name, 
 PATCH  /categories/{id}             → edit category (partial) — requires login with role=technician/manager
 GET    /sla-rules                   → list the 4 SLA rules (one per priority) — requires login with role=technician/manager
 PATCH  /sla-rules/{id}               → edit response/resolution deadlines (partial; priority is not editable) — requires login with role=technician/manager
+GET    /users                       → list users — requires login with role=admin
+POST   /users                       → create user (blocks duplicate email) — requires login with role=admin
+PATCH  /users/{id}                  → edit user (partial; name/role only) — requires login with role=admin
+GET    /groups                      → list groups, with member_ids — requires login with role=admin
+POST   /groups                      → create group — requires login with role=admin
+PATCH  /groups/{id}/members         → replaces the member set entirely — requires login with role=admin
+GET    /audit-log                   → list the audit trail — requires login with role=admin
 ```
 
 ### AI triage (Phase 3)
@@ -359,6 +372,13 @@ PATCH  /sla-rules/{id}               → edit response/resolution deadlines (par
 - **Categories tab:** list, create, and edit (`GET/POST /categories`, `PATCH /categories/{id}`). A duplicate name (case-insensitive) is blocked with a 400 — extra safeguard, since AI triage matches the suggested category by name, so duplicate names would break that match.
 - **SLA rules tab:** lists the 4 rules (one per priority, fixed in the enum) and edits each one's response/resolution deadline (`GET/PATCH /sla-rules`). No create/delete — only adjusts the deadlines already seeded.
 - `GET /categories` now genuinely exists as of this phase — the screen queries the API directly instead of the manual mirror `frontend/src/devData.ts` (which stays in use on the other screens that already depended on it).
+
+### Administration (Phase 11)
+
+- 4th persona, `admin`, with its own screen (`/admin`) — doesn't stack onto the technician/manager screens (same starting point the manager had until Phase 10: a single sidebar item).
+- **Users tab:** list, create (name, email, role, initial password), and edit name/role (`GET/POST /users`, `PATCH /users/{id}`). A duplicate email is blocked with a 400. No password change or account deactivation.
+- **Groups tab:** list, create, and edit members via a user checklist (`GET/POST /groups`, `PATCH /groups/{id}/members`). A group is only organization/routing — it does **not** control permission (Option A: "profile" stays the fixed `role`, no granular RBAC). `PATCH .../members` replaces the member set entirely.
+- **Audit tab:** a read-only table of admin actions (`GET /audit-log`) — when, who, action, target, and details. Every user or group creation/edit writes an entry, in the same transaction as the underlying change.
 
 ---
 

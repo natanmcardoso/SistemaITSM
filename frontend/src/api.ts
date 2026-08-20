@@ -1,8 +1,12 @@
 import type {
+  AuditLogOut,
   CategoryCreate,
   CategoryOut,
   CategoryUpdate,
   DashboardSummary,
+  GroupCreate,
+  GroupMembersUpdate,
+  GroupOut,
   InteractionOut,
   KBArticleCreate,
   KBArticleOut,
@@ -14,6 +18,9 @@ import type {
   TicketOut,
   TicketUpdate,
   TokenResponse,
+  UserCreate,
+  UserOut,
+  UserUpdate,
 } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -146,6 +153,39 @@ export function listSlaRules(token: string): Promise<SLARuleOut[]> {
 
 export function updateSlaRule(token: string, ruleId: string, payload: SLARuleUpdate): Promise<SLARuleOut> {
   return request<SLARuleOut>(`/sla-rules/${ruleId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+}
+
+// Fase 11 (Administração — usuários, grupos, auditoria), restrito a role=admin no backend.
+export function listUsers(token: string): Promise<UserOut[]> {
+  return request<UserOut[]>("/users", { method: "GET" }, token);
+}
+
+export function createUser(token: string, payload: UserCreate): Promise<UserOut> {
+  return request<UserOut>("/users", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function updateUser(token: string, userId: string, payload: UserUpdate): Promise<UserOut> {
+  return request<UserOut>(`/users/${userId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+}
+
+export function listGroups(token: string): Promise<GroupOut[]> {
+  return request<GroupOut[]>("/groups", { method: "GET" }, token);
+}
+
+export function createGroup(token: string, payload: GroupCreate): Promise<GroupOut> {
+  return request<GroupOut>("/groups", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function updateGroupMembers(token: string, groupId: string, payload: GroupMembersUpdate): Promise<GroupOut> {
+  return request<GroupOut>(
+    `/groups/${groupId}/members`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function listAuditLog(token: string): Promise<AuditLogOut[]> {
+  return request<AuditLogOut[]>("/audit-log", { method: "GET" }, token);
 }
 
 export { ApiError };
