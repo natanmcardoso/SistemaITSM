@@ -19,6 +19,26 @@ class UserOut(BaseModel):
     role: UserRole
 
 
+class UserCreate(BaseModel):
+    """Fase 11 (Administração) — admin cria conta direto pela UI, em vez de
+    só direto no banco (mesmo padrão de senha em texto puro na criação que
+    o seed já usa; hash acontece no backend)."""
+
+    name: str = Field(min_length=1)
+    email: str = Field(min_length=3)
+    role: UserRole
+    password: str = Field(min_length=6)
+
+
+class UserUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial. Sem troca de senha nem
+    desativação de conta nesta sub-fase (fora do pedido original de Fase 11:
+    `GET/POST /users`, `PATCH /users/{id}` — só nome e role)."""
+
+    name: Optional[str] = Field(default=None, min_length=1)
+    role: Optional[UserRole] = None
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -144,6 +164,18 @@ class SLARuleUpdate(BaseModel):
 
     response_time_hours: Optional[int] = Field(default=None, gt=0)
     resolution_time_hours: Optional[int] = Field(default=None, gt=0)
+
+
+class AuditLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    action: str
+    entity_type: str
+    entity_id: Optional[uuid.UUID]
+    details: Optional[str]
+    created_at: datetime
 
 
 class CategoryCount(BaseModel):
