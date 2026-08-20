@@ -156,7 +156,7 @@ Para cada fase:
 
 Não pular etapas, não adiantar código de fases futuras, não assumir que "vai dar certo" sem testar.
 
-**Commit no Git:** ao final de cada fase testada e aprovada (não a cada alteração pontual). Mensagem de commit deve indicar a fase concluída, ex: `git commit -m "fase 1: modelo de dados + migrations testadas"`.
+**Commit no Git:** ao final de **cada sub-fase** testada e aprovada, não só ao final da fase inteira (não a cada alteração pontual dentro da sub-fase). Testou e passou → comita antes de seguir pra próxima sub-fase, mesmo que a fase maior ainda não tenha fechado. Mensagem de commit deve indicar o que foi concluído, ex: `git commit -m "fase 1: modelo de dados + migrations testadas"` ou `git commit -m "fase 11 (sub-fase 11.1): modelo de dados de administracao testado"`.
 
 **README:** ao final de cada fase testada e aprovada, atualizar **ambos** `README.md` (português) e `README.en.md` (inglês) — marcar a fase concluída no roadmap, atualizar "Status atual" e adicionar/ajustar instruções de "Como rodar localmente" se a fase mudou o setup. Nunca atualizar um README sem atualizar o outro junto.
 

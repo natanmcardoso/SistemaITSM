@@ -10,7 +10,7 @@ from app.database import Base
 
 # --- Enums --------------------------------------------------------------
 
-USER_ROLES = ("end_user", "technician", "manager")
+USER_ROLES = ("end_user", "technician", "manager", "admin")
 TICKET_STATUSES = ("open", "in_progress", "resolved", "closed")
 TICKET_PRIORITIES = ("low", "medium", "high", "critical")
 ASSET_TYPES = ("desktop", "notebook", "server", "printer", "network", "other")
@@ -40,6 +40,47 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     role: Mapped[str] = mapped_column(user_role_enum, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Group(Base):
+    """Administração (Fase 11) — organização/roteamento de usuários, **não**
+    controla permissão (Opção A confirmada em CLAUDE.md: "perfil" continua
+    sendo o `role` fixo; RBAC granular fica só documentado como evolução
+    futura, não implementado)."""
+
+    __tablename__ = "groups"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserGroup(Base):
+    """Associação many-to-many entre users e groups (Fase 11) — PK composta,
+    sem coluna `id` própria."""
+
+    __tablename__ = "user_groups"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
+    group_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("groups.id"), primary_key=True)
+
+
+class AuditLog(Base):
+    """Trilha de auditoria (Fase 11) — registra ações administrativas
+    (CRUD de usuários/grupos). `entity_id` fica nullable pra cobrir ações
+    sem um alvo único (ex.: nenhuma prevista ainda, mas evita reabrir o
+    schema se aparecer uma)."""
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    entity_type: Mapped[str] = mapped_column(String, nullable=False)
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 TicketStatus = Literal["open", "in_progress", "resolved", "closed"]
 TicketPriority = Literal["low", "medium", "high", "critical"]
-UserRole = Literal["end_user", "technician", "manager"]
+UserRole = Literal["end_user", "technician", "manager", "admin"]
 
 
 class UserOut(BaseModel):
