@@ -316,3 +316,27 @@ class DashboardSummary(BaseModel):
     # só chamados com asset_id/problem_id preenchido entram na contagem.
     top_assets: list[CategoryCount]
     top_problems: list[CategoryCount]
+    # Fase 14 (Dashboard expandido) — produtividade por técnico: chamados
+    # resolvidos/fechados por técnico (assignee_id), mesmo shape name/count
+    # de top_categories/top_assets/top_problems.
+    productivity_by_technician: list[CategoryCount]
+
+
+class TechnicianDashboardSummary(BaseModel):
+    """Fase 14 (Dashboard expandido) — dashboard pessoal do técnico, widgets
+    calculados sobre os próprios chamados atribuídos (assignee_id = quem
+    está logado). Definições (sem status novo no schema, reaproveitando os 4
+    já existentes):
+
+    - meus_chamados: atribuídos a mim, status open ou in_progress (carga de
+      trabalho ativa).
+    - pendencias: subconjunto acima com status=open (ainda não comecei).
+    - criticos: subconjunto acima com priority=critical.
+    - aguardando_resposta: subconjunto acima com status=in_progress (já
+      comecei, presumivelmente esperando próxima ação/resposta).
+    """
+
+    meus_chamados: int
+    pendencias: int
+    criticos: int
+    aguardando_resposta: int
