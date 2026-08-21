@@ -9,10 +9,10 @@ Idempotente: pula qualquer registro cujo email/nome já exista, então pode ser
 rodado de novo sem duplicar nada. Para resetar de vez, apague as linhas
 manualmente no Neon.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from app.database import SessionLocal
-from app.models import Asset, Category, KBArticle, Problem, Service, SLARule, Ticket, User
+from app.models import Asset, BusinessHours, Category, Holiday, KBArticle, Problem, Service, SLARule, Ticket, User
 from app.security import hash_password
 from app.services.sla import compute_sla_due_at
 
@@ -77,6 +77,29 @@ KB_ARTICLES = [
         "confirmar o processo; o chamado sempre segue pro técnico registrar a solicitação.",
         "Acesso e Conta",
     ),
+]
+
+# Calendário de horário comercial (Fase 13) — 1 calendário global fixo:
+# segunda-sexta 08h-18h, sábado/domingo fechados. weekday segue a convenção
+# de datetime.weekday() (0=segunda...6=domingo).
+BUSINESS_HOURS = [
+    {"weekday": 0, "is_open": True, "start_time": time(8, 0), "end_time": time(18, 0)},
+    {"weekday": 1, "is_open": True, "start_time": time(8, 0), "end_time": time(18, 0)},
+    {"weekday": 2, "is_open": True, "start_time": time(8, 0), "end_time": time(18, 0)},
+    {"weekday": 3, "is_open": True, "start_time": time(8, 0), "end_time": time(18, 0)},
+    {"weekday": 4, "is_open": True, "start_time": time(8, 0), "end_time": time(18, 0)},
+    {"weekday": 5, "is_open": False, "start_time": None, "end_time": None},
+    {"weekday": 6, "is_open": False, "start_time": None, "end_time": None},
+]
+
+# (date, name) — feriados nacionais fixos, alguns próximos da criação desta
+# fase (2026-08-21), pra demonstrar o cálculo de SLA pulando um feriado de
+# verdade sem precisar esperar meses.
+HOLIDAYS = [
+    (date(2026, 9, 7), "Independência do Brasil"),
+    (date(2026, 10, 12), "Nossa Senhora Aparecida"),
+    (date(2026, 11, 2), "Finados"),
+    (date(2026, 12, 25), "Natal"),
 ]
 
 # (name, description, category_name) — Catálogo de Serviços (Fase 12), 1 por
@@ -272,6 +295,20 @@ def run():
             article = KBArticle(title=title, content=content, category_id=categories_by_name[cat_name].id)
             db.add(article)
             print(f"[criado] kb_article: {title}")
+
+        for bh in BUSINESS_HOURS:
+            existing = db.query(BusinessHours).filter(BusinessHours.weekday == bh["weekday"]).first()
+            if existing:
+                continue
+            db.add(BusinessHours(**bh))
+            print(f"[criado] business_hours: weekday={bh['weekday']} is_open={bh['is_open']}")
+
+        for holiday_date, name in HOLIDAYS:
+            existing = db.query(Holiday).filter(Holiday.date == holiday_date).first()
+            if existing:
+                continue
+            db.add(Holiday(date=holiday_date, name=name))
+            print(f"[criado] holiday: {holiday_date} ({name})")
 
         for name, description, cat_name in SERVICES:
             existing = db.query(Service).filter(Service.name == name).first()

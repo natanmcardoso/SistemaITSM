@@ -2,6 +2,15 @@
 Teste da Fase 4 (sub-fase SLA): cálculo de sla_due_at na criação/atualização
 de chamados + métrica de SLA estourado no dashboard.
 
+Desde a Fase 13, `sla_due_at` é calculado em horário comercial (não mais
+corrido/24-7) — o "esperado" de cada asserção é recalculado aqui chamando o
+mesmo motor de horário comercial (app/services/business_hours.py) usado em
+produção, com o calendário real lido do banco. Continua sendo um teste de
+integração de verdade (confere que POST/PATCH /tickets chamam
+compute_sla_due_at com os parâmetros certos), não um teste da lógica de
+cálculo em si — essa já é coberta exaustivamente, isolada, em
+test_phase13_business_hours_calc.py.
+
 Sobe a app FastAPI real (TestClient) contra o banco real (Neon). `SLARule`
 tem `priority` único (só 4 valores possíveis no enum), então o teste reusa a
 regra já cadastrada pra cada prioridade quando existir (ex.: seed_dev_data.py
@@ -10,7 +19,7 @@ ordem de execução dos outros scripts.
 
 Valida:
 - POST /tickets com priority explícita -> sla_due_at ~= created_at +
-  resolution_time_hours da regra daquela prioridade.
+  resolution_time_hours da regra daquela prioridade, em horário comercial.
 - PATCH priority -> sla_due_at recalcula a partir da CRIAÇÃO do chamado
   (não do instante do PATCH — não dá pra "resetar o relógio" reclassificando).
 - GET /dashboard/summary.sla reflete um chamado com SLA estourado (via
@@ -22,12 +31,22 @@ from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models import SLARule, Ticket, User
+from app.models import BusinessHours, Holiday, SLARule, Ticket, User
 from app.security import create_access_token
+from app.services.business_hours import DayWindow, add_business_hours
 
 client = TestClient(app)
 
 TOLERANCE = timedelta(minutes=2)
+
+
+def _load_calendar(db):
+    windows = {
+        row.weekday: DayWindow(row.is_open, row.start_time, row.end_time)
+        for row in db.query(BusinessHours).all()
+    }
+    holidays = {row.date for row in db.query(Holiday).all()}
+    return windows, holidays
 
 
 def _ensure_rule(db, priority: str, resolution_hours: int):
@@ -64,6 +83,9 @@ def run():
     low_hours, low_created_rule = _ensure_rule(db, "low", 72)
     print(f"[setup] sla_rules: high={high_hours}h low={low_hours}h")
 
+    windows, holidays = _load_calendar(db)
+    assert windows, "seed_dev_data.py precisa ter rodado (business_hours vazia -> sla_due_at sempre None)"
+
     created_ids = []
     try:
         # --- baseline do dashboard (antes de criar o chamado estourado) ---
@@ -89,9 +111,9 @@ def run():
         created_ids.append(ticket_id)
         assert body["sla_due_at"] is not None, "priority reconhecida em sla_rules deveria gerar sla_due_at"
         due_at = datetime.fromisoformat(body["sla_due_at"])
-        expected = before_create + timedelta(hours=high_hours)
+        expected = add_business_hours(before_create, high_hours, windows, holidays)
         assert abs(due_at - expected) < TOLERANCE, f"due_at={due_at} esperado~={expected}"
-        print(f"[OK] POST /tickets priority=high -> sla_due_at ~= criação + {high_hours}h")
+        print(f"[OK] POST /tickets priority=high -> sla_due_at ~= criação + {high_hours}h em horário comercial")
 
         # --- PATCH priority=low -> recalcula a partir da CRIAÇÃO, não do PATCH ---
         resp = client.get(f"/tickets/{ticket_id}", headers=auth_headers)
@@ -101,10 +123,10 @@ def run():
         assert resp.status_code == 200, resp.text
         updated = resp.json()
         new_due_at = datetime.fromisoformat(updated["sla_due_at"])
-        expected_new = created_at + timedelta(hours=low_hours)
+        expected_new = add_business_hours(created_at, low_hours, windows, holidays)
         assert abs(new_due_at - expected_new) < TOLERANCE, f"due_at={new_due_at} esperado~={expected_new}"
         assert new_due_at != due_at
-        print(f"[OK] PATCH priority=low -> sla_due_at recalculado a partir da criação (+{low_hours}h), não do PATCH")
+        print(f"[OK] PATCH priority=low -> sla_due_at recalculado a partir da criação (+{low_hours}h em horário comercial), não do PATCH")
 
         # --- chamado com SLA já estourado (created_at forçado no passado direto no banco) ---
         breached = Ticket(

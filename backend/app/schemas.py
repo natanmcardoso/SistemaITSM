@@ -1,6 +1,6 @@
 """Schemas Pydantic para a API de tickets (Fase 2 — CRUD, sem IA ainda)."""
 import uuid
-from datetime import datetime
+from datetime import date, datetime, time
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -193,6 +193,40 @@ class SLARuleUpdate(BaseModel):
 
     response_time_hours: Optional[int] = Field(default=None, gt=0)
     resolution_time_hours: Optional[int] = Field(default=None, gt=0)
+
+
+class BusinessHoursOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    weekday: int
+    is_open: bool
+    start_time: Optional[time]
+    end_time: Optional[time]
+
+
+class BusinessHoursUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial. `weekday` não é editável (é
+    a chave que identifica a linha, única — Fase 13). Quando `is_open=True`
+    fica setado sem `start_time`/`end_time`, o endpoint barra com 400 (dia
+    aberto precisa de horário)."""
+
+    is_open: Optional[bool] = None
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
+
+
+class HolidayOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    date: date
+    name: str
+
+
+class HolidayCreate(BaseModel):
+    date: date
+    name: str = Field(min_length=1)
 
 
 class GroupOut(BaseModel):

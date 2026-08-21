@@ -5,9 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import (
     audit_log,
     auth,
+    business_hours,
     categories,
     dashboard,
     groups,
+    holidays,
     kb_articles,
     services,
     sla_rules,
@@ -33,6 +35,8 @@ app.include_router(kb_articles.router)
 app.include_router(categories.router)
 app.include_router(services.router)
 app.include_router(sla_rules.router)
+app.include_router(business_hours.router)
+app.include_router(holidays.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(audit_log.router)
