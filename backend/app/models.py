@@ -123,6 +123,27 @@ class Problem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class Service(Base):
+    """Catálogo de Serviços (Fase 12) — evolução pós-MVP, fora do design doc
+    original. Escopo confirmado com o usuário antes de codar: sem formulário
+    padronizado dinâmico (só nome/categoria/descrição) — o catálogo serve pra
+    pré-selecionar a categoria do chamado, a descrição livre continua igual
+    (mesmo espírito de "cobrir o núcleo, não o framework inteiro" do CMDB,
+    Fase 6). `category_id` é obrigatório (diferente de Category em Ticket,
+    que é nullable): um serviço sem categoria não cumpre o propósito de
+    pré-seleção que motivou a tabela."""
+
+    __tablename__ = "services"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    category_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False
+    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Ticket(Base):
     __tablename__ = "tickets"
 
@@ -149,6 +170,12 @@ class Ticket(Base):
     )
     problem_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("problems.id"), nullable=True
+    )
+
+    # Catálogo de Serviços (Fase 12) — vínculo opcional: a maioria dos
+    # chamados segue sendo aberta por texto livre, sem passar pelo catálogo.
+    service_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("services.id"), nullable=True
     )
 
     # Sugestão original da IA — preservada separada do valor final (ver design-itsm-mvp.md §5)
