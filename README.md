@@ -24,6 +24,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 9 (Tabela de chamados customizável) concluída e testada — colunas de data de abertura e SLA, cabeçalhos clicáveis pra ordenar, seletor de colunas visíveis (escolha salva por navegador)
 ✅ Fase 10 (Configurações restantes) concluída e testada — CRUD de categorias, edição de regras de SLA e nova tela `/configuracoes` pra técnico/gestor
 ✅ Fase 11 (Administração) concluída e testada — 4ª persona (`admin`), CRUD de usuários e grupos, trilha de auditoria, nova tela `/admin`
+✅ Fase 12 (Catálogo de Serviços + Serviços) concluída e testada — tabela `services`, aba "Serviços" em Configurações, nova tela `/catalogo` pro usuário final escolher um serviço ao abrir chamado (pré-seleciona a categoria)
 
 ---
 
@@ -75,7 +76,7 @@ graph TB
 - **Entrada** — portal (novo chamado) e API REST
 - **Gestão** — fila, SLA, prioridade sugerida por IA, workflow de status, escalonamento por problema
 - **Saída** — resolução via sugestão da IA, base de conhecimento (automação por regras e notificações ainda não implementadas)
-- **ITSM** — incidente, requisição, problema (mudança/release/catálogo fora de escopo, decisão de portfólio)
+- **ITSM** — incidente, requisição, problema, catálogo de serviços (Fase 12) (mudança/release fora de escopo, decisão de portfólio)
 - **Ativos** — CMDB básico (Fase 6)
 - **IA** — classificação, roteamento por categoria, sugestão de KB (chatbot e análise de sentimento fora de escopo, decisão de portfólio)
 
@@ -114,7 +115,10 @@ graph TB
   - [x] `groups`/`user_groups` (organização/roteamento, não controla permissão) + `audit_log`
   - [x] CRUD de usuários e grupos, trilha de auditoria (só leitura)
   - [x] Tela `/admin`, restrita a admin
-- [ ] Fase 12 — Catálogo de Serviços + Serviços
+- [x] Fase 12 — Catálogo de Serviços + Serviços
+  - [x] Tabela `services` (nome, categoria, descrição)
+  - [x] `GET/POST/PATCH /services`; `POST /tickets` herda a categoria do serviço quando não vem explícita
+  - [x] Aba "Serviços" em Configurações; tela `/catalogo` pro usuário final
 - [ ] Fase 13 — Calendários (SLA por horário comercial)
 - [ ] Fase 14 — Dashboard expandido + Página inicial + Menu do usuário
 - [ ] Fase 15 — Relatórios (exportação CSV/PDF)
@@ -245,7 +249,7 @@ npm run dev
 GET    /health
 POST   /auth/login                  → login (email + senha) → JWT
 GET    /auth/me                     → dados do usuário autenticado (requer Bearer token)
-POST   /tickets                     → cria chamado (triagem por IA roda automaticamente) — requer login
+POST   /tickets                     → cria chamado (triagem por IA roda automaticamente; service_id opcional herda a categoria do serviço) — requer login
 GET    /tickets                     → lista (filtros: status, priority, category_id, assignee_id, requester_id, query, sla=breached) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
 PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
@@ -259,6 +263,9 @@ GET    /dashboard/summary           → métricas do dashboard do gestor — req
 GET    /categories                  → lista categorias — requer login com role=technician/manager
 POST   /categories                  → cria categoria (barra nome duplicado, case-insensitive) — requer login com role=technician/manager
 PATCH  /categories/{id}             → edita categoria (parcial) — requer login com role=technician/manager
+GET    /services                    → lista serviços do catálogo — requer login
+POST   /services                    → cria serviço — requer login com role=technician/manager
+PATCH  /services/{id}               → edita serviço (parcial) — requer login com role=technician/manager
 GET    /sla-rules                   → lista as 4 regras de SLA (uma por prioridade) — requer login com role=technician/manager
 PATCH  /sla-rules/{id}               → edita prazos de resposta/resolução (parcial; priority não é editável) — requer login com role=technician/manager
 GET    /users                       → lista usuários — requer login com role=admin
@@ -385,6 +392,12 @@ GET    /audit-log                   → lista a trilha de auditoria — requer l
 - **Aba Usuários:** lista, cria (nome, e-mail, perfil, senha inicial) e edita nome/perfil (`GET/POST /users`, `PATCH /users/{id}`). E-mail duplicado é barrado com 400. Sem troca de senha nem desativação de conta.
 - **Aba Grupos:** lista, cria e edita membros via checklist (`GET/POST /groups`, `PATCH /groups/{id}/members`). Grupo é só organização/roteamento — **não** controla permissão (Opção A: "perfil" continua sendo o `role` fixo, sem RBAC granular). `PATCH .../members` substitui o conjunto de membros por completo.
 - **Aba Auditoria:** tabela só-leitura com as ações administrativas (`GET /audit-log`) — quando, quem, ação, alvo e detalhes. Toda criação/edição de usuário ou grupo grava uma entrada, na mesma transação da mudança principal.
+
+### Catálogo de Serviços (Fase 12)
+
+- Nova tabela `services` (nome, categoria — obrigatória, descrição opcional). Sem formulário padronizado dinâmico por serviço (decisão de escopo confirmada antes de codar): a descrição do chamado continua livre, o catálogo só pré-seleciona a categoria.
+- **Aba Serviços em Configurações:** lista, cria e edita (`GET/POST /services`, `PATCH /services/{id}`, restritos a `technician`/`manager` no `POST`/`PATCH` — o `GET` é aberto a qualquer usuário autenticado, já que o próprio usuário final consome o catálogo).
+- **Tela `/catalogo` (usuário final):** lista os serviços com categoria e descrição; escolher um leva pro formulário de sempre em "Novo chamado", já com a categoria pré-selecionada. `tickets.service_id` (FK opcional, mesmo padrão de `asset_id`/`problem_id` da Fase 6) guarda de qual serviço o chamado veio; quando informado e a categoria não vem explícita, `POST /tickets` herda a categoria do serviço (prevalece sobre a sugestão da IA).
 
 ---
 

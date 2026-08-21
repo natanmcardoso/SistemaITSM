@@ -24,6 +24,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 9 (Customizable ticket table) completed and tested — opened-date and SLA columns, clickable sortable headers, a column-visibility picker (choice saved per browser)
 ✅ Phase 10 (Remaining settings) completed and tested — categories CRUD, SLA rule editing, and a new `/configuracoes` screen for technician/manager
 ✅ Phase 11 (Administration) completed and tested — 4th persona (`admin`), users and groups CRUD, audit trail, new `/admin` screen
+✅ Phase 12 (Service Catalog + Services) completed and tested — `services` table, "Services" tab in Settings, new `/catalogo` screen for the end user to pick a service when opening a ticket (pre-selects the category)
 
 ---
 
@@ -75,7 +76,7 @@ graph TB
 - **Intake** — portal (new ticket) and REST API
 - **Management** — queue, SLA, AI-suggested priority, status workflow, problem-based escalation
 - **Output** — resolution via AI suggestion, knowledge base (rule-based automation and notifications not yet implemented)
-- **ITSM** — incident, request, problem (change/release/catalog out of scope, portfolio-scope decision)
+- **ITSM** — incident, request, problem, service catalog (Phase 12) (change/release out of scope, portfolio-scope decision)
 - **Assets** — basic CMDB (Phase 6)
 - **AI** — classification, category routing, KB suggestion (chatbot and sentiment analysis out of scope, portfolio-scope decision)
 
@@ -114,7 +115,10 @@ graph TB
   - [x] `groups`/`user_groups` (organization/routing, doesn't control permission) + `audit_log`
   - [x] Users and groups CRUD, audit trail (read-only)
   - [x] `/admin` screen, restricted to admin
-- [ ] Phase 12 — Service Catalog + Services
+- [x] Phase 12 — Service Catalog + Services
+  - [x] `services` table (name, category, description)
+  - [x] `GET/POST/PATCH /services`; `POST /tickets` inherits the service's category when none is given explicitly
+  - [x] "Services" tab in Settings; `/catalog` screen for the end user
 - [ ] Phase 13 — Calendars (business-hours SLA)
 - [ ] Phase 14 — Expanded dashboard + Homepage + User menu
 - [ ] Phase 15 — Reports (CSV/PDF export)
@@ -245,7 +249,7 @@ npm run dev
 GET    /health
 POST   /auth/login                  → login (email + password) → JWT
 GET    /auth/me                     → authenticated user's data (requires Bearer token)
-POST   /tickets                     → creates a ticket (AI triage runs automatically) — requires login
+POST   /tickets                     → creates a ticket (AI triage runs automatically; optional service_id inherits the service's category) — requires login
 GET    /tickets                     → list (filters: status, priority, category_id, assignee_id, requester_id, query, sla=breached) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
 PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
@@ -259,6 +263,9 @@ GET    /dashboard/summary           → manager dashboard metrics — requires l
 GET    /categories                  → list categories — requires login with role=technician/manager
 POST   /categories                  → create category (blocks duplicate name, case-insensitive) — requires login with role=technician/manager
 PATCH  /categories/{id}             → edit category (partial) — requires login with role=technician/manager
+GET    /services                    → list catalog services — requires login
+POST   /services                    → create service — requires login with role=technician/manager
+PATCH  /services/{id}               → edit service (partial) — requires login with role=technician/manager
 GET    /sla-rules                   → list the 4 SLA rules (one per priority) — requires login with role=technician/manager
 PATCH  /sla-rules/{id}               → edit response/resolution deadlines (partial; priority is not editable) — requires login with role=technician/manager
 GET    /users                       → list users — requires login with role=admin
@@ -385,6 +392,12 @@ GET    /audit-log                   → list the audit trail — requires login 
 - **Users tab:** list, create (name, email, role, initial password), and edit name/role (`GET/POST /users`, `PATCH /users/{id}`). A duplicate email is blocked with a 400. No password change or account deactivation.
 - **Groups tab:** list, create, and edit members via a user checklist (`GET/POST /groups`, `PATCH /groups/{id}/members`). A group is only organization/routing — it does **not** control permission (Option A: "profile" stays the fixed `role`, no granular RBAC). `PATCH .../members` replaces the member set entirely.
 - **Audit tab:** a read-only table of admin actions (`GET /audit-log`) — when, who, action, target, and details. Every user or group creation/edit writes an entry, in the same transaction as the underlying change.
+
+### Service Catalog (Phase 12)
+
+- New `services` table (name, category — required, description optional). No dynamic per-service form (scope decision confirmed before coding): the ticket description stays free text, the catalog only pre-selects the category.
+- **Services tab in Settings:** list, create, and edit (`GET/POST /services`, `PATCH /services/{id}`, `POST`/`PATCH` restricted to `technician`/`manager` — `GET` is open to any authenticated user, since the end user is the one who browses the catalog).
+- **`/catalogo` screen (end user):** lists services with category and description; picking one leads to the usual "New ticket" form, already with the category pre-selected. `tickets.service_id` (optional FK, same pattern as `asset_id`/`problem_id` from Phase 6) records which service a ticket came from; when it's given and the category isn't explicit, `POST /tickets` inherits the service's category (it takes priority over the AI suggestion).
 
 ---
 

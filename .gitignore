@@ -16,3 +16,8 @@ build/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Verificação visual via browser automation (Playwright MCP, fallback quando
+# a extensão do Chrome não conecta) — screenshots/snapshots de sessão, não
+# fazem parte do código.
+.playwright-mcp/

@@ -12,7 +12,7 @@ manualmente no Neon.
 from datetime import datetime, timedelta, timezone
 
 from app.database import SessionLocal
-from app.models import Asset, Category, KBArticle, Problem, SLARule, Ticket, User
+from app.models import Asset, Category, KBArticle, Problem, Service, SLARule, Ticket, User
 from app.security import hash_password
 from app.services.sla import compute_sla_due_at
 
@@ -75,6 +75,32 @@ KB_ARTICLES = [
         "Acessos a pastas e sistemas compartilhados dependem de aprovação do gestor da "
         "área responsável — não são liberados automaticamente. Use este artigo só pra "
         "confirmar o processo; o chamado sempre segue pro técnico registrar a solicitação.",
+        "Acesso e Conta",
+    ),
+]
+
+# (name, description, category_name) — Catálogo de Serviços (Fase 12), 1 por
+# categoria, mesmo padrão de KB_ARTICLES acima. Ao escolher um no catálogo, o
+# usuário final abre chamado já com a categoria pré-selecionada.
+SERVICES = [
+    (
+        "Solicitar novo notebook",
+        "Pedido de notebook novo, substituição por defeito ou upgrade de equipamento.",
+        "Hardware",
+    ),
+    (
+        "Instalar ou atualizar software",
+        "Instalação de programa novo ou atualização de versão em uso.",
+        "Software",
+    ),
+    (
+        "Solicitar acesso à VPN corporativa",
+        "Liberação de acesso à VPN pra trabalho remoto.",
+        "Rede",
+    ),
+    (
+        "Solicitar acesso a sistema ou pasta compartilhada",
+        "Pedido de permissão de acesso a um sistema ou pasta compartilhada, sujeito à aprovação do gestor da área.",
         "Acesso e Conta",
     ),
 ]
@@ -246,6 +272,14 @@ def run():
             article = KBArticle(title=title, content=content, category_id=categories_by_name[cat_name].id)
             db.add(article)
             print(f"[criado] kb_article: {title}")
+
+        for name, description, cat_name in SERVICES:
+            existing = db.query(Service).filter(Service.name == name).first()
+            if existing:
+                continue
+            service = Service(name=name, description=description, category_id=categories_by_name[cat_name].id)
+            db.add(service)
+            print(f"[criado] service: {name}")
 
         assets_by_name = {}
         for a in ASSETS:

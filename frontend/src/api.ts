@@ -11,6 +11,9 @@ import type {
   KBArticleCreate,
   KBArticleOut,
   KBArticleUpdate,
+  ServiceCreate,
+  ServiceOut,
+  ServiceUpdate,
   SLARuleOut,
   SLARuleUpdate,
   TicketCreate,
@@ -145,6 +148,20 @@ export function updateCategory(token: string, categoryId: string, payload: Categ
     { method: "PATCH", body: JSON.stringify(payload) },
     token,
   );
+}
+
+// Fase 12 (Catálogo de Serviços) — GET aberto a qualquer usuário autenticado,
+// POST/PATCH restritos a technician/manager no backend.
+export function listServices(token: string): Promise<ServiceOut[]> {
+  return request<ServiceOut[]>("/services", { method: "GET" }, token);
+}
+
+export function createService(token: string, payload: ServiceCreate): Promise<ServiceOut> {
+  return request<ServiceOut>("/services", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function updateService(token: string, serviceId: string, payload: ServiceUpdate): Promise<ServiceOut> {
+  return request<ServiceOut>(`/services/${serviceId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
 }
 
 export function listSlaRules(token: string): Promise<SLARuleOut[]> {

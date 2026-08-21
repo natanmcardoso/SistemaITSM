@@ -3,6 +3,7 @@ import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { homeRouteForRole } from "./auth/routing";
 import { AdminPage } from "./pages/AdminPage";
+import { CatalogPage } from "./pages/CatalogPage";
 import { ConfigPage } from "./pages/ConfigPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
@@ -65,6 +66,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <MeusChamadosPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalogo"
+        element={
+          <RequireAuth>
+            <CatalogPage />
           </RequireAuth>
         }
       />

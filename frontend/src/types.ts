@@ -21,6 +21,10 @@ export interface TicketCreate {
   title: string;
   description: string;
   requester_id: string;
+  category_id?: string;
+  // Fase 12 (Catálogo de Serviços) — se informado sem category_id explícito,
+  // o backend herda a categoria do serviço.
+  service_id?: string;
 }
 
 export interface TicketOut {
@@ -32,6 +36,7 @@ export interface TicketOut {
   category_id: string | null;
   requester_id: string;
   assignee_id: string | null;
+  service_id: string | null;
   ai_suggested_priority: TicketPriority | null;
   ai_suggested_category_id: string | null;
   resolved_by_ai: boolean;
@@ -128,6 +133,27 @@ export interface CategoryCreate {
 export interface CategoryUpdate {
   name?: string;
   default_sla_hours?: number;
+}
+
+// Fase 12 (Catálogo de Serviços)
+export interface ServiceOut {
+  id: string;
+  name: string;
+  category_id: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface ServiceCreate {
+  name: string;
+  category_id: string;
+  description?: string;
+}
+
+export interface ServiceUpdate {
+  name?: string;
+  category_id?: string;
+  description?: string;
 }
 
 export interface SLARuleOut {

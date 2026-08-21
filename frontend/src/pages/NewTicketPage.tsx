@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ApiError, createTicket, getKbArticlesByCategory, resolveByUser } from "../api";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ApiError, createTicket, getKbArticlesByCategory, listServices, resolveByUser } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
-import { IconCheck, IconLogout, IconSparkle, IconTicket } from "../components/icons";
+import { IconCheck, IconLayers, IconLogout, IconSparkle, IconTicket } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
-import type { KBArticleOut, TicketOut } from "../types";
+import type { KBArticleOut, ServiceOut, TicketOut } from "../types";
 
 // Tela 2/3 da fase 4 — abertura de chamado pelo usuário final (design doc §2.1).
 // Fluxo completo desde a sub-fase resolve-by-user: cria o chamado (IA já
@@ -17,11 +17,29 @@ import type { KBArticleOut, TicketOut } from "../types";
 export function NewTicketPage() {
   const { auth, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const serviceIdFromCatalog = searchParams.get("service_id");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<TicketOut | null>(null);
+
+  // Fase 12 (Catálogo de Serviços) — chegando de /catalogo?service_id=, busca
+  // o serviço pra mostrar o nome/categoria no formulário e mandar service_id
+  // junto na criação (o backend herda a categoria dele). Sem GET /services/{id}
+  // dedicado (mesma decisão de "sem GET por id" já usada em categories) —
+  // busca a lista toda e filtra, igual o resto do frontend faz com devData.
+  const [catalogService, setCatalogService] = useState<ServiceOut | null | undefined>(
+    serviceIdFromCatalog ? undefined : null,
+  );
+
+  useEffect(() => {
+    if (!auth || !serviceIdFromCatalog) return;
+    listServices(auth.token)
+      .then((services) => setCatalogService(services.find((s) => s.id === serviceIdFromCatalog) ?? null))
+      .catch(() => setCatalogService(null));
+  }, [auth, serviceIdFromCatalog]);
 
   // undefined = ainda verificando; null = verificado, sem artigo pra essa categoria
   const [kbArticle, setKbArticle] = useState<KBArticleOut | null | undefined>(undefined);
@@ -55,6 +73,9 @@ export function NewTicketPage() {
         title,
         description,
         requester_id: auth.user.id,
+        ...(catalogService
+          ? { service_id: catalogService.id, category_id: catalogService.category_id }
+          : {}),
       });
       setCreated(ticket);
     } catch (err) {
@@ -107,6 +128,13 @@ export function NewTicketPage() {
           </div>
           <div className="flex items-center gap-2.5">
             <Link
+              to="/catalogo"
+              className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <IconLayers width={14} height={14} />
+              Catálogo
+            </Link>
+            <Link
               to="/meus-chamados"
               className="rounded-full border-[1.5px] border-primary px-4 py-2 text-[13px] font-bold text-primary hover:bg-primary-tint"
             >
@@ -130,6 +158,17 @@ export function NewTicketPage() {
             onSubmit={handleSubmit}
             className="rounded-2xl border border-slate-200 bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]"
           >
+            {catalogService && (
+              <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-[#C7D7FB] bg-primary-tint px-3.5 py-2.5">
+                <IconLayers width={14} height={14} className="shrink-0 text-primary" />
+                <p className="text-[13px] text-slate-700">
+                  Abrindo chamado a partir do serviço <span className="font-bold">{catalogService.name}</span> —
+                  categoria <span className="font-bold">{CATEGORY_NAMES[catalogService.category_id] ?? "—"}</span>{" "}
+                  já selecionada.
+                </p>
+              </div>
+            )}
+
             <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="title">
               Título
             </label>

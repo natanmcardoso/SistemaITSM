@@ -3,9 +3,12 @@ import { Navigate, useNavigate } from "react-router-dom";
 import {
   ApiError,
   createCategory,
+  createService,
   listCategories,
+  listServices,
   listSlaRules,
   updateCategory,
+  updateService,
   updateSlaRule,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
@@ -14,7 +17,7 @@ import { IconEdit, IconPlus } from "../components/icons";
 import { managerNavItems } from "../components/managerNavItems";
 import { Sidebar } from "../components/Sidebar";
 import { technicianNavItems } from "../components/technicianNavItems";
-import type { CategoryOut, SLARuleOut, TicketPriority } from "../types";
+import type { CategoryOut, ServiceOut, SLARuleOut, TicketPriority } from "../types";
 
 // Fase 10 — Configurações restantes: CRUD de categorias e edição de regras
 // de SLA, restritos a technician/manager no backend (require_role). O CRUD
@@ -33,7 +36,7 @@ const PRIORITY_LABELS: Record<TicketPriority, string> = {
   low: "Baixa",
 };
 
-type Tab = "categorias" | "sla";
+type Tab = "categorias" | "servicos" | "sla";
 
 interface CategoryFormValues {
   name: string;
@@ -249,6 +252,270 @@ function CategoriesSection({ token }: { token: string }) {
   );
 }
 
+// Fase 12 — cadastro de serviços do Catálogo. Mesmo padrão de card/formulário
+// do CRUD de categorias acima; category_id é obrigatório no schema (Service
+// sem categoria não cumpre o propósito de pré-seleção que motivou a tabela).
+interface ServiceFormValues {
+  name: string;
+  categoryId: string;
+  description: string;
+}
+
+function ServiceForm({
+  initial,
+  categories,
+  submitLabel,
+  saving,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  initial: ServiceFormValues;
+  categories: CategoryOut[];
+  submitLabel: string;
+  saving: boolean;
+  error: string | null;
+  onSubmit: (values: ServiceFormValues) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(initial.name);
+  const [categoryId, setCategoryId] = useState(initial.categoryId);
+  const [description, setDescription] = useState(initial.description);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    onSubmit({ name: name.trim(), categoryId, description: description.trim() });
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-2xl border border-[#C7D7FB] bg-primary-tint p-5.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]"
+    >
+      <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="service-name">
+        Nome
+      </label>
+      <input
+        id="service-name"
+        type="text"
+        required
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="mb-3.5 w-full rounded-[10px] border-[1.5px] border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+      />
+
+      <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="service-category">
+        Categoria
+      </label>
+      <select
+        id="service-category"
+        required
+        value={categoryId}
+        onChange={(e) => setCategoryId(e.target.value)}
+        className="mb-3.5 w-full rounded-[10px] border-[1.5px] border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+      >
+        <option value="" disabled>
+          Selecione...
+        </option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+
+      <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="service-description">
+        Descrição (opcional)
+      </label>
+      <textarea
+        id="service-description"
+        rows={3}
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="O que esse serviço cobre, pra ajudar o usuário a escolher certo"
+        className="mb-4 w-full resize-none rounded-[10px] border-[1.5px] border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+      />
+
+      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : submitLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="rounded-[10px] border-[1.5px] border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ServicesSection({ token }: { token: string }) {
+  const [services, setServices] = useState<ServiceOut[] | null>(null);
+  const [categories, setCategories] = useState<CategoryOut[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  function reload() {
+    listServices(token)
+      .then(setServices)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Falha ao buscar os serviços."));
+  }
+
+  useEffect(reload, [token]);
+  useEffect(() => {
+    listCategories(token)
+      .then(setCategories)
+      .catch(() => {});
+  }, [token]);
+
+  const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? "—";
+
+  async function handleCreate(values: ServiceFormValues) {
+    setSaving(true);
+    setFormError(null);
+    try {
+      await createService(token, {
+        name: values.name,
+        category_id: values.categoryId,
+        description: values.description || undefined,
+      });
+      setCreating(false);
+      reload();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Não foi possível criar o serviço.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUpdate(serviceId: string, values: ServiceFormValues) {
+    setSaving(true);
+    setFormError(null);
+    try {
+      await updateService(token, serviceId, {
+        name: values.name,
+        category_id: values.categoryId,
+        description: values.description || undefined,
+      });
+      setEditingId(null);
+      reload();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Não foi possível salvar as alterações.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          Serviços que o usuário final escolhe no Catálogo ao abrir um chamado (pré-seleciona a categoria).
+        </p>
+        {!creating && categories.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setFormError(null);
+              setCreating(true);
+            }}
+            className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white hover:bg-primary-dark"
+          >
+            <IconPlus width={14} height={14} strokeWidth={2.3} />
+            Novo serviço
+          </button>
+        )}
+      </div>
+
+      {creating && (
+        <div className="mb-4">
+          <ServiceForm
+            initial={{ name: "", categoryId: categories[0]?.id ?? "", description: "" }}
+            categories={categories}
+            submitLabel="Criar serviço"
+            saving={saving}
+            error={formError}
+            onSubmit={handleCreate}
+            onCancel={() => {
+              setCreating(false);
+              setFormError(null);
+            }}
+          />
+        </div>
+      )}
+
+      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
+      {services === null && !error ? (
+        <p className="text-sm text-slate-500">Carregando...</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {services?.map((service) =>
+            editingId === service.id ? (
+              <ServiceForm
+                key={service.id}
+                initial={{
+                  name: service.name,
+                  categoryId: service.category_id,
+                  description: service.description ?? "",
+                }}
+                categories={categories}
+                submitLabel="Salvar alterações"
+                saving={saving}
+                error={formError}
+                onSubmit={(values) => handleUpdate(service.id, values)}
+                onCancel={() => {
+                  setEditingId(null);
+                  setFormError(null);
+                }}
+              />
+            ) : (
+              <div
+                key={service.id}
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-extrabold text-slate-900">{service.name}</div>
+                  <div className="text-[12.5px] text-slate-500">Categoria: {categoryName(service.category_id)}</div>
+                  {service.description && (
+                    <div className="mt-1 text-[12.5px] text-slate-500">{service.description}</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreating(false);
+                    setFormError(null);
+                    setEditingId(service.id);
+                  }}
+                  aria-label="Editar serviço"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-primary"
+                >
+                  <IconEdit width={15} height={15} />
+                </button>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SlaRuleRow({ rule, token, onSaved }: { rule: SLARuleOut; token: string; onSaved: () => void }) {
   const [editing, setEditing] = useState(false);
   const [responseHours, setResponseHours] = useState(String(rule.response_time_hours));
@@ -427,6 +694,7 @@ export function ConfigPage() {
           {(
             [
               ["categorias", "Categorias"],
+              ["servicos", "Serviços"],
               ["sla", "Regras de SLA"],
             ] as [Tab, string][]
           ).map(([value, label]) => (
@@ -445,7 +713,13 @@ export function ConfigPage() {
           ))}
         </div>
 
-        {tab === "categorias" ? <CategoriesSection token={auth.token} /> : <SlaRulesSection token={auth.token} />}
+        {tab === "categorias" ? (
+          <CategoriesSection token={auth.token} />
+        ) : tab === "servicos" ? (
+          <ServicesSection token={auth.token} />
+        ) : (
+          <SlaRulesSection token={auth.token} />
+        )}
       </div>
     </div>
   );

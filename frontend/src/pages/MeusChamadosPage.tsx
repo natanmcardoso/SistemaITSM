@@ -4,7 +4,7 @@ import { ApiError, listTickets } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { StatusBadge } from "../components/StatusBadge";
-import { IconLogout, IconTicket } from "../components/icons";
+import { IconLayers, IconLogout, IconTicket } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { TicketOut } from "../types";
 
@@ -46,6 +46,13 @@ export function MeusChamadosPage() {
             <p className="text-sm text-slate-500">Logado como {auth.user.name}</p>
           </div>
           <div className="flex items-center gap-2.5">
+            <Link
+              to="/catalogo"
+              className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <IconLayers width={14} height={14} />
+              Catálogo
+            </Link>
             <Link
               to="/novo-chamado"
               className="rounded-full border-[1.5px] border-primary px-4 py-2 text-[13px] font-bold text-primary hover:bg-primary-tint"
