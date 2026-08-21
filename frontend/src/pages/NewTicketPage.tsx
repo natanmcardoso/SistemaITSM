@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, createTicket, getKbArticlesByCategory, listServices, resolveByUser } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
-import { IconCheck, IconLayers, IconLogout, IconSparkle, IconTicket } from "../components/icons";
+import { IconCheck, IconHome, IconLayers, IconLogout, IconSparkle, IconTicket } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { KBArticleOut, ServiceOut, TicketOut } from "../types";
 
@@ -127,6 +127,13 @@ export function NewTicketPage() {
             <p className="text-sm text-slate-500">Logado como {auth.user.name}</p>
           </div>
           <div className="flex items-center gap-2.5">
+            <Link
+              to="/inicio"
+              className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <IconHome width={14} height={14} />
+              Início
+            </Link>
             <Link
               to="/catalogo"
               className="flex items-center gap-1.5 rounded-full border-[1.5px] border-slate-300 bg-white px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-50"

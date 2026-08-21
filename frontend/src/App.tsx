@@ -5,6 +5,7 @@ import { homeRouteForRole } from "./auth/routing";
 import { AdminPage } from "./pages/AdminPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ConfigPage } from "./pages/ConfigPage";
+import { HomePage } from "./pages/HomePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -30,6 +31,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/inicio"
+        element={
+          <RequireAuth>
+            <HomePage />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/meu-dashboard"
         element={
