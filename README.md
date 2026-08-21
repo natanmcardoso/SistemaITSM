@@ -29,6 +29,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 14 (Dashboard expandido + Página inicial + Menu do usuário) concluída e testada — dashboard novo do técnico, produtividade por técnico no dashboard do gestor, tela `/inicio` com atalhos por persona, menu do usuário (Perfil, Prioridades, Minha fila, Agendas)
 ✅ Fase 15 (Relatórios) concluída e testada — exportação CSV/PDF do resumo do dashboard e da lista de chamados, disponível pra gestor e técnico, sem endpoint novo (PDF via impressão do navegador)
 ✅ Fase 16 (Automações) concluída e testada — regra "chamado perto de estourar o SLA" (limiar editável), notificação dentro do próprio sistema (sem e-mail/SMS), calculada sob demanda sem tabela persistida nem scheduler em background
+✅ Fase 17 (Monitoramento) concluída e testada — saúde do próprio sistema: uptime desde o último restart + taxa de erro via log persistido de requisições, restrito ao gestor. Fecha o roadmap estendido de navegação (Fases 10-17); só resta a Fase 18 (RMM próprio, futura, fora de escopo)
 
 ---
 
@@ -140,7 +141,10 @@ graph TB
   - [x] Regra fixa "chamado perto de estourar o SLA" (limiar editável)
   - [x] Notificação dentro do sistema, calculada sob demanda (sem e-mail/SMS, sem scheduler)
   - [x] Tela `/automacoes`, restrita a gestor
-- [ ] Fase 17 — Monitoramento (saúde do sistema)
+- [x] Fase 17 — Monitoramento (saúde do sistema)
+  - [x] Uptime desde o último restart do backend
+  - [x] Log persistido de requisições (`request_logs`); taxa de erro e erros recentes numa janela de tempo
+  - [x] Tela `/monitoramento`, restrita a gestor
 - [ ] Fase 18 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -301,6 +305,7 @@ GET    /audit-log                   → lista a trilha de auditoria — requer l
 GET    /automation-rules            → lista a regra de automação (1 linha) — requer login com role=manager
 PATCH  /automation-rules/{id}       → edita threshold_percent/enabled — requer login com role=manager
 GET    /notifications               → lista chamados que dispararam a regra (calculado sob demanda) — requer login com role=manager
+GET    /monitoring/summary          → uptime + taxa de erro (janela de tempo, ?window_hours=) — requer login com role=manager
 ```
 
 ### Triagem por IA (Fase 3)
@@ -457,6 +462,14 @@ O projeto não tinha (e continua sem ter) nenhum mecanismo de notificação exte
 - Nova tabela `automation_rules` — 1 linha (`sla_near_breach`), com limiar percentual e ativo/inativo editáveis.
 - `GET /notifications` recalcula do zero a cada chamada — chamados que já consumiram X% do prazo de SLA (ou já estouraram), mesmo padrão já usado pra "SLA estourado" no dashboard.
 - **Tela `/automacoes`** (restrita a gestor): edita a regra e lista os chamados que a dispararam, clicável pro detalhe.
+
+### Monitoramento (Fase 17)
+
+Saúde do próprio sistema (uptime da API, taxa de erro) — não é sobre os `assets` do CMDB nem é RMM. Duas decisões confirmadas com o usuário antes de codar, as duas contra a recomendação inicial (mais simples): acesso pro **gestor** (não admin); **log persistido de requisições** em vez de contador em memória — sobrevive a restart do backend (rotina neste projeto), ao custo de 1 `INSERT` por requisição real.
+
+- Nova tabela `request_logs` — toda requisição é logada (exceto `/health`), sempre consultada numa janela de tempo (nunca a tabela inteira).
+- **Uptime** vem do horário em que o processo subiu (em memória — reseta a cada restart, é literal "tempo no ar", não histórico).
+- **Tela `/monitoramento`** (restrita a gestor): uptime, total de requisições/erros/taxa de erro na janela (24h por padrão) e tabela de erros recentes.
 
 ---
 

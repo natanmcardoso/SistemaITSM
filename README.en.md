@@ -29,6 +29,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 14 (Expanded dashboard + Homepage + User menu) completed and tested — new personal dashboard for the technician, per-technician productivity on the manager dashboard, `/inicio` screen with per-persona shortcuts, user menu (Profile, Priorities, My queue, Schedule)
 ✅ Phase 15 (Reports) completed and tested — CSV/PDF export of the dashboard summary and the ticket list, available to both manager and technician, no new endpoint (PDF via browser print)
 ✅ Phase 16 (Automations) completed and tested — "ticket nearing SLA breach" rule (editable threshold), in-app notification (no email/SMS), computed on demand with no persisted table and no background scheduler
+✅ Phase 17 (Monitoring) completed and tested — system health: uptime since the last restart + error rate via a persisted request log, restricted to the manager. Closes the extended navigation roadmap (Phases 10-17); only Phase 18 remains (custom RMM, future, out of scope)
 
 ---
 
@@ -140,7 +141,10 @@ graph TB
   - [x] Fixed "ticket nearing SLA breach" rule (editable threshold)
   - [x] In-app notification, computed on demand (no email/SMS, no scheduler)
   - [x] `/automacoes` screen, restricted to manager
-- [ ] Phase 17 — Monitoring (system health)
+- [x] Phase 17 — Monitoring (system health)
+  - [x] Uptime since the backend's last restart
+  - [x] Persisted request log (`request_logs`); error rate and recent errors over a time window
+  - [x] `/monitoramento` screen, restricted to manager
 - [ ] Phase 18 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
@@ -301,6 +305,7 @@ GET    /audit-log                   → list the audit trail — requires login 
 GET    /automation-rules            → list the automation rule (1 row) — requires login with role=manager
 PATCH  /automation-rules/{id}       → edit threshold_percent/enabled — requires login with role=manager
 GET    /notifications               → list tickets that triggered the rule (computed on demand) — requires login with role=manager
+GET    /monitoring/summary          → uptime + error rate (time window, ?window_hours=) — requires login with role=manager
 ```
 
 ### AI triage (Phase 3)
@@ -457,6 +462,14 @@ The project had (and still has) no external notification mechanism and no backgr
 - New `automation_rules` table — one row (`sla_near_breach`), with an editable percentage threshold and enabled/disabled flag.
 - `GET /notifications` recomputes from scratch on every call — tickets that have already consumed X% of their SLA window (or already breached), same pattern already used for "SLA breached" on the dashboard.
 - **`/automacoes` screen** (restricted to manager): edits the rule and lists the tickets that triggered it, clickable through to the detail view.
+
+### Monitoring (Phase 17)
+
+System health (API uptime, error rate) — not about the CMDB's `assets`, and not RMM. Two decisions confirmed with the user before coding, both against the simpler initial recommendation: access for the **manager** (not admin); a **persisted request log** instead of an in-memory counter — survives backend restarts (routine in this project), at the cost of one `INSERT` per real request.
+
+- New `request_logs` table — every request is logged (except `/health`), always queried over a time window (never the whole table).
+- **Uptime** comes from when the process started (in memory — resets on every restart; it's literal "time up", not historical).
+- **`/monitoramento` screen** (restricted to manager): uptime, total requests/errors/error rate in the window (24h by default), and a recent-errors table.
 
 ---
 
