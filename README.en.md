@@ -25,6 +25,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 10 (Remaining settings) completed and tested — categories CRUD, SLA rule editing, and a new `/configuracoes` screen for technician/manager
 ✅ Phase 11 (Administration) completed and tested — 4th persona (`admin`), users and groups CRUD, audit trail, new `/admin` screen
 ✅ Phase 12 (Service Catalog + Services) completed and tested — `services` table, "Services" tab in Settings, new `/catalogo` screen for the end user to pick a service when opening a ticket (pre-selects the category)
+✅ Phase 13 (Calendars — business-hours SLA) completed and tested — the highest-risk phase in the roadmap: `sla_due_at` is now computed in business hours (one global calendar with holidays) instead of running 24/7; "Calendars" tab in Settings; existing tickets recomputed via a backfill
 
 ---
 
@@ -119,7 +120,11 @@ graph TB
   - [x] `services` table (name, category, description)
   - [x] `GET/POST/PATCH /services`; `POST /tickets` inherits the service's category when none is given explicitly
   - [x] "Services" tab in Settings; `/catalog` screen for the end user
-- [ ] Phase 13 — Calendars (business-hours SLA)
+- [x] Phase 13 — Calendars (business-hours SLA)
+  - [x] `business_hours` (one row per weekday) and `holidays` tables
+  - [x] `sla_due_at` computed in business hours (fixed America/Sao_Paulo timezone), with holidays
+  - [x] `GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`; "Calendars" tab in Settings
+  - [x] Backfill of existing tickets with the new logic
 - [ ] Phase 14 — Expanded dashboard + Homepage + User menu
 - [ ] Phase 15 — Reports (CSV/PDF export)
 - [ ] Phase 16 — Automations
@@ -268,6 +273,11 @@ POST   /services                    → create service — requires login with r
 PATCH  /services/{id}               → edit service (partial) — requires login with role=technician/manager
 GET    /sla-rules                   → list the 4 SLA rules (one per priority) — requires login with role=technician/manager
 PATCH  /sla-rules/{id}               → edit response/resolution deadlines (partial; priority is not editable) — requires login with role=technician/manager
+GET    /business-hours              → list the 7 calendar days — requires login with role=technician/manager
+PATCH  /business-hours/{id}         → edit a day's is_open/start_time/end_time — requires login with role=technician/manager
+GET    /holidays                    → list holidays — requires login with role=technician/manager
+POST   /holidays                    → create holiday (blocks duplicate date) — requires login with role=technician/manager
+DELETE /holidays/{id}               → remove holiday — requires login with role=technician/manager
 GET    /users                       → list users — requires login with role=admin
 POST   /users                       → create user (blocks duplicate email) — requires login with role=admin
 PATCH  /users/{id}                  → edit user (partial; name/role only) — requires login with role=admin
@@ -398,6 +408,15 @@ GET    /audit-log                   → list the audit trail — requires login 
 - New `services` table (name, category — required, description optional). No dynamic per-service form (scope decision confirmed before coding): the ticket description stays free text, the catalog only pre-selects the category.
 - **Services tab in Settings:** list, create, and edit (`GET/POST /services`, `PATCH /services/{id}`, `POST`/`PATCH` restricted to `technician`/`manager` — `GET` is open to any authenticated user, since the end user is the one who browses the catalog).
 - **`/catalogo` screen (end user):** lists services with category and description; picking one leads to the usual "New ticket" form, already with the category pre-selected. `tickets.service_id` (optional FK, same pattern as `asset_id`/`problem_id` from Phase 6) records which service a ticket came from; when it's given and the category isn't explicit, `POST /tickets` inherits the service's category (it takes priority over the AI suggestion).
+
+### Calendars — business-hours SLA (Phase 13)
+
+The highest-risk phase in the roadmap: it reopened the `sla_due_at` calculation already closed since Phase 4 (previously running 24/7). Two decisions confirmed with the user before coding: **one fixed global calendar with holidays** (not configurable per category/priority) and **recompute every existing ticket**, not just new ones.
+
+- New `business_hours` (one row per weekday — open/closed + start/end time) and `holidays` (date + name) tables. Fixed `America/Sao_Paulo` timezone — not configurable in this phase.
+- The calculation engine (`add_business_hours`) is isolated and exhaustively tested (12 cases: weekend, holiday, full window, invalid configuration, timezone conversion, etc.) before being wired into the real `compute_sla_due_at`.
+- **Calendars tab in Settings:** edits each weekday's hours and creates/removes holidays (`GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`, restricted to `technician`/`manager`).
+- Existing tickets (still unresolved/open) were recomputed via a manual backfill script, run once against the database — same pattern as the Phase 4 SLA backfill.
 
 ---
 

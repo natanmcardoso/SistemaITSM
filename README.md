@@ -25,6 +25,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 10 (Configurações restantes) concluída e testada — CRUD de categorias, edição de regras de SLA e nova tela `/configuracoes` pra técnico/gestor
 ✅ Fase 11 (Administração) concluída e testada — 4ª persona (`admin`), CRUD de usuários e grupos, trilha de auditoria, nova tela `/admin`
 ✅ Fase 12 (Catálogo de Serviços + Serviços) concluída e testada — tabela `services`, aba "Serviços" em Configurações, nova tela `/catalogo` pro usuário final escolher um serviço ao abrir chamado (pré-seleciona a categoria)
+✅ Fase 13 (Calendários — SLA por horário comercial) concluída e testada — a fase de maior risco do roadmap: `sla_due_at` agora é calculado em horário comercial (1 calendário global com feriados), não mais corrido 24/7; aba "Calendários" em Configurações; chamados já existentes recalculados via backfill
 
 ---
 
@@ -119,7 +120,11 @@ graph TB
   - [x] Tabela `services` (nome, categoria, descrição)
   - [x] `GET/POST/PATCH /services`; `POST /tickets` herda a categoria do serviço quando não vem explícita
   - [x] Aba "Serviços" em Configurações; tela `/catalogo` pro usuário final
-- [ ] Fase 13 — Calendários (SLA por horário comercial)
+- [x] Fase 13 — Calendários (SLA por horário comercial)
+  - [x] Tabelas `business_hours` (1 linha por dia da semana) e `holidays`
+  - [x] `sla_due_at` calculado em horário comercial (fuso fixo América/São Paulo), com feriados
+  - [x] `GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`; aba "Calendários" em Configurações
+  - [x] Backfill dos chamados já existentes com a nova lógica
 - [ ] Fase 14 — Dashboard expandido + Página inicial + Menu do usuário
 - [ ] Fase 15 — Relatórios (exportação CSV/PDF)
 - [ ] Fase 16 — Automações
@@ -268,6 +273,11 @@ POST   /services                    → cria serviço — requer login com role=
 PATCH  /services/{id}               → edita serviço (parcial) — requer login com role=technician/manager
 GET    /sla-rules                   → lista as 4 regras de SLA (uma por prioridade) — requer login com role=technician/manager
 PATCH  /sla-rules/{id}               → edita prazos de resposta/resolução (parcial; priority não é editável) — requer login com role=technician/manager
+GET    /business-hours              → lista os 7 dias do calendário — requer login com role=technician/manager
+PATCH  /business-hours/{id}         → edita is_open/start_time/end_time de um dia — requer login com role=technician/manager
+GET    /holidays                    → lista feriados — requer login com role=technician/manager
+POST   /holidays                    → cria feriado (barra data duplicada) — requer login com role=technician/manager
+DELETE /holidays/{id}               → remove feriado — requer login com role=technician/manager
 GET    /users                       → lista usuários — requer login com role=admin
 POST   /users                       → cria usuário (barra e-mail duplicado) — requer login com role=admin
 PATCH  /users/{id}                  → edita usuário (parcial; só name/role) — requer login com role=admin
@@ -398,6 +408,15 @@ GET    /audit-log                   → lista a trilha de auditoria — requer l
 - Nova tabela `services` (nome, categoria — obrigatória, descrição opcional). Sem formulário padronizado dinâmico por serviço (decisão de escopo confirmada antes de codar): a descrição do chamado continua livre, o catálogo só pré-seleciona a categoria.
 - **Aba Serviços em Configurações:** lista, cria e edita (`GET/POST /services`, `PATCH /services/{id}`, restritos a `technician`/`manager` no `POST`/`PATCH` — o `GET` é aberto a qualquer usuário autenticado, já que o próprio usuário final consome o catálogo).
 - **Tela `/catalogo` (usuário final):** lista os serviços com categoria e descrição; escolher um leva pro formulário de sempre em "Novo chamado", já com a categoria pré-selecionada. `tickets.service_id` (FK opcional, mesmo padrão de `asset_id`/`problem_id` da Fase 6) guarda de qual serviço o chamado veio; quando informado e a categoria não vem explícita, `POST /tickets` herda a categoria do serviço (prevalece sobre a sugestão da IA).
+
+### Calendários — SLA por horário comercial (Fase 13)
+
+A fase de maior risco do roadmap: reabriu o cálculo de `sla_due_at` já fechado desde a Fase 4 (antes era corrido, 24 horas por dia). Duas decisões confirmadas com o usuário antes de codar: **1 calendário global fixo com feriados** (não configurável por categoria/prioridade) e **recalcular todos os chamados já existentes**, não só os novos.
+
+- Novas tabelas `business_hours` (1 linha por dia da semana — aberto/fechado + horário início/fim) e `holidays` (data + nome). Fuso fixo `America/Sao_Paulo` — não configurável nesta fase.
+- Motor de cálculo (`add_business_hours`) isolado e testado exaustivamente (12 casos: fim de semana, feriado, janela cheia, configuração inválida, conversão de fuso, etc.) antes de ser plugado no `compute_sla_due_at` real.
+- **Aba Calendários em Configurações:** edita o horário de cada dia da semana e cadastra/remove feriados (`GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`, restritos a `technician`/`manager`).
+- Chamados já existentes (ainda não resolvidos/fechados) foram recalculados via um script de backfill manual, rodado uma vez contra o banco — mesmo padrão do backfill de SLA da Fase 4.
 
 ---
 
