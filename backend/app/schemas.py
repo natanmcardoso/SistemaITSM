@@ -71,6 +71,10 @@ class TicketCreate(BaseModel):
     category_id: Optional[uuid.UUID] = None
     priority: Optional[TicketPriority] = None
     assignee_id: Optional[uuid.UUID] = None
+    # Fase 12 (Catálogo de Serviços) — se informado e category_id não vier
+    # explícito, a categoria do chamado é herdada do serviço (ver
+    # app/routers/tickets.py::create_ticket).
+    service_id: Optional[uuid.UUID] = None
 
 
 class TicketUpdate(BaseModel):
@@ -93,6 +97,7 @@ class TicketOut(BaseModel):
     category_id: Optional[uuid.UUID]
     requester_id: uuid.UUID
     assignee_id: Optional[uuid.UUID]
+    service_id: Optional[uuid.UUID]
     ai_suggested_priority: Optional[TicketPriority]
     ai_suggested_category_id: Optional[uuid.UUID]
     resolved_by_ai: bool
@@ -147,6 +152,30 @@ class CategoryUpdate(BaseModel):
 
     name: Optional[str] = Field(default=None, min_length=1)
     default_sla_hours: Optional[int] = Field(default=None, gt=0)
+
+
+class ServiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    category_id: uuid.UUID
+    description: Optional[str]
+    created_at: datetime
+
+
+class ServiceCreate(BaseModel):
+    name: str = Field(min_length=1)
+    category_id: uuid.UUID
+    description: Optional[str] = None
+
+
+class ServiceUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial (mesmo padrão de CategoryUpdate)."""
+
+    name: Optional[str] = Field(default=None, min_length=1)
+    category_id: Optional[uuid.UUID] = None
+    description: Optional[str] = None
 
 
 class SLARuleOut(BaseModel):

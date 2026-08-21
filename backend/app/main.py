@@ -2,7 +2,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import audit_log, auth, categories, dashboard, groups, kb_articles, sla_rules, tickets, users
+from app.routers import (
+    audit_log,
+    auth,
+    categories,
+    dashboard,
+    groups,
+    kb_articles,
+    services,
+    sla_rules,
+    tickets,
+    users,
+)
 
 app = FastAPI(title="Sistema ITSM API")
 
@@ -20,6 +31,7 @@ app.include_router(tickets.router)
 app.include_router(dashboard.router)
 app.include_router(kb_articles.router)
 app.include_router(categories.router)
+app.include_router(services.router)
 app.include_router(sla_rules.router)
 app.include_router(users.router)
 app.include_router(groups.router)

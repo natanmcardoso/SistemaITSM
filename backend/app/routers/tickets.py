@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased, selectinload
 
 from app.database import get_db
-from app.models import TICKET_STATUSES, Interaction, Ticket, User
+from app.models import TICKET_STATUSES, Interaction, Service, Ticket, User
 from app.schemas import InteractionCreate, InteractionOut, TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
 from app.security import get_current_user
 from app.services.sla import compute_sla_due_at
@@ -38,13 +38,29 @@ def create_ticket(payload: TicketCreate, db: Session = Depends(get_db)):
     triage = triage_ticket(payload.title, payload.description, db)
     final_priority = payload.priority if payload.priority is not None else triage.priority
 
+    # Fase 12 (Catálogo de Serviços) — abrir chamado a partir de um serviço do
+    # catálogo pré-seleciona a categoria: se category_id não vier explícito,
+    # a categoria do serviço tem prioridade sobre a sugestão da IA (a escolha
+    # do usuário no catálogo é mais específica que a triagem por texto).
+    # ai_suggested_category_id continua sempre a sugestão pura da IA, sem
+    # influência do serviço — não afeta a métrica de acerto.
+    final_category_id = payload.category_id
+    if final_category_id is None and payload.service_id is not None:
+        service = db.query(Service).filter(Service.id == payload.service_id).first()
+        if service is None:
+            raise HTTPException(status_code=400, detail="service_id inválido")
+        final_category_id = service.category_id
+    if final_category_id is None:
+        final_category_id = triage.category_id
+
     ticket = Ticket(
         title=payload.title,
         description=payload.description,
         requester_id=payload.requester_id,
-        category_id=payload.category_id if payload.category_id is not None else triage.category_id,
+        category_id=final_category_id,
         priority=final_priority,
         assignee_id=payload.assignee_id,
+        service_id=payload.service_id,
         ai_suggested_priority=triage.priority,
         ai_suggested_category_id=triage.category_id,
         status="open",
@@ -56,7 +72,7 @@ def create_ticket(payload: TicketCreate, db: Session = Depends(get_db)):
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
-            status_code=400, detail="requester_id, category_id ou assignee_id inválido(s)"
+            status_code=400, detail="requester_id, category_id, assignee_id ou service_id inválido(s)"
         ) from exc
     db.refresh(ticket)
     return ticket
