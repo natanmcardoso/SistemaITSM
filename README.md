@@ -27,6 +27,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 12 (Catálogo de Serviços + Serviços) concluída e testada — tabela `services`, aba "Serviços" em Configurações, nova tela `/catalogo` pro usuário final escolher um serviço ao abrir chamado (pré-seleciona a categoria)
 ✅ Fase 13 (Calendários — SLA por horário comercial) concluída e testada — a fase de maior risco do roadmap: `sla_due_at` agora é calculado em horário comercial (1 calendário global com feriados), não mais corrido 24/7; aba "Calendários" em Configurações; chamados já existentes recalculados via backfill
 ✅ Fase 14 (Dashboard expandido + Página inicial + Menu do usuário) concluída e testada — dashboard novo do técnico, produtividade por técnico no dashboard do gestor, tela `/inicio` com atalhos por persona, menu do usuário (Perfil, Prioridades, Minha fila, Agendas)
+✅ Fase 15 (Relatórios) concluída e testada — exportação CSV/PDF do resumo do dashboard e da lista de chamados, disponível pra gestor e técnico, sem endpoint novo (PDF via impressão do navegador)
 
 ---
 
@@ -130,7 +131,10 @@ graph TB
   - [x] Dashboard pessoal do técnico (`/meu-dashboard`); produtividade por técnico no dashboard do gestor
   - [x] Página inicial (`/inicio`) com atalhos por persona — não substitui o destino de login por role
   - [x] Menu do usuário: Perfil (todas as personas), Minha fila/Prioridades/Agendas (técnico)
-- [ ] Fase 15 — Relatórios (exportação CSV/PDF)
+- [x] Fase 15 — Relatórios (exportação CSV/PDF)
+  - [x] Resumo do dashboard e lista de chamados exportáveis em CSV
+  - [x] Exportação em PDF via impressão do navegador (sem lib nova)
+  - [x] Tela `/relatorios` disponível pra gestor e técnico (cada um exporta o próprio resumo)
 - [ ] Fase 16 — Automações
 - [ ] Fase 17 — Monitoramento (saúde do sistema)
 - [ ] Fase 18 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
@@ -431,6 +435,13 @@ Três decisões confirmadas com o usuário antes de codar (o pedido original era
 - **Produtividade da equipe:** novo card no dashboard do gestor — chamados resolvidos/fechados por técnico.
 - **Página inicial** (`/inicio`): hub com atalhos por persona, disponível na navegação pra quem quiser voltar pra um resumo do que pode fazer.
 - **Menu do usuário** (dropdown no bloco de identidade da sidebar): Perfil (todas as personas, só leitura); Minha fila, Prioridades (filtro padrão salvo por navegador, aplicado ao abrir a fila sem filtro nenhum) e Agendas (chamados ativos ordenados por SLA) — essas três só pro técnico, que é quem tem fila pessoal.
+
+### Relatórios (Fase 15)
+
+Fase inteira sem endpoint novo — só exporta o que já vem de `GET /dashboard/summary`, `GET /dashboard/my-summary` e `GET /tickets`, todos já existentes. Três decisões confirmadas com o usuário antes de codar: escopo cobre **resumo do dashboard e lista de chamados** (não só o resumo); **gestor e técnico** têm acesso, cada um exporta o próprio resumo; PDF via **impressão do navegador** (`window.print()`), sem lib nova.
+
+- **Tela `/relatorios`:** "Resumo do dashboard"/"Meu resumo" + lista de chamados, cada seção com botão "Exportar CSV" próprio, e "Exportar PDF (imprimir)" cobrindo a página inteira.
+- CSV gerado no cliente (`Blob` + link de download temporário), com BOM UTF-8 pra acentuação abrir certo no Excel.
 
 ---
 

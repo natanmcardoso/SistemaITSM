@@ -27,6 +27,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 12 (Service Catalog + Services) completed and tested — `services` table, "Services" tab in Settings, new `/catalogo` screen for the end user to pick a service when opening a ticket (pre-selects the category)
 ✅ Phase 13 (Calendars — business-hours SLA) completed and tested — the highest-risk phase in the roadmap: `sla_due_at` is now computed in business hours (one global calendar with holidays) instead of running 24/7; "Calendars" tab in Settings; existing tickets recomputed via a backfill
 ✅ Phase 14 (Expanded dashboard + Homepage + User menu) completed and tested — new personal dashboard for the technician, per-technician productivity on the manager dashboard, `/inicio` screen with per-persona shortcuts, user menu (Profile, Priorities, My queue, Schedule)
+✅ Phase 15 (Reports) completed and tested — CSV/PDF export of the dashboard summary and the ticket list, available to both manager and technician, no new endpoint (PDF via browser print)
 
 ---
 
@@ -130,7 +131,10 @@ graph TB
   - [x] Technician's personal dashboard (`/meu-dashboard`); per-technician productivity on the manager dashboard
   - [x] Homepage (`/inicio`) with per-persona shortcuts — doesn't replace the role-based login destination
   - [x] User menu: Profile (every persona), My queue/Priorities/Schedule (technician)
-- [ ] Phase 15 — Reports (CSV/PDF export)
+- [x] Phase 15 — Reports (CSV/PDF export)
+  - [x] Dashboard summary and ticket list exportable as CSV
+  - [x] PDF export via browser print (no new library)
+  - [x] `/relatorios` screen available to manager and technician (each exports their own summary)
 - [ ] Phase 16 — Automations
 - [ ] Phase 17 — Monitoring (system health)
 - [ ] Phase 18 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
@@ -431,6 +435,13 @@ Three decisions confirmed with the user before coding (the original request was 
 - **Team productivity:** new card on the manager dashboard — tickets resolved/closed per technician.
 - **Homepage** (`/inicio`): a hub with per-persona shortcuts, available in navigation for anyone who wants to come back to a summary of what they can do.
 - **User menu** (dropdown on the sidebar's identity block): Profile (every persona, read-only); My queue, Priorities (a default filter saved per browser, applied when the queue opens with no filter) and Schedule (active tickets sorted by SLA) — these three only for the technician, the only persona with a personal queue.
+
+### Reports (Phase 15)
+
+The whole phase ships without a new endpoint — it only exports what already comes from `GET /dashboard/summary`, `GET /dashboard/my-summary`, and `GET /tickets`, all pre-existing. Three decisions confirmed with the user before coding: scope covers **the dashboard summary and the ticket list** (not just the summary); **manager and technician** both have access, each exporting their own summary; PDF via **browser print** (`window.print()`), no new library.
+
+- **`/relatorios` screen:** "Dashboard summary"/"My summary" + ticket list, each section with its own "Export CSV" button, plus an "Export PDF (print)" button covering the whole page.
+- CSV generated client-side (`Blob` + a temporary download link), with a UTF-8 BOM so accented characters open correctly in Excel.
 
 ---
 
