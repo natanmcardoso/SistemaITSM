@@ -13,6 +13,7 @@ import {
   IconSparkle,
   IconTarget,
   IconTicket,
+  IconUsers,
 } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { AIAccuracyMetric, DashboardSummary, TicketStatus } from "../types";
@@ -254,6 +255,33 @@ export function DashboardPage() {
                 metric={summary.ai_accuracy_category}
                 icon={<IconTarget width={20} height={20} />}
               />
+            </div>
+
+            {/* Produtividade por técnico (Fase 14 — Dashboard expandido) */}
+            <div className="mt-6 mb-2.5 text-xs font-bold tracking-wider text-slate-400 uppercase">
+              Produtividade da equipe
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10.5 w-10.5 items-center justify-center rounded-xl bg-primary-tint">
+                  <IconUsers width={20} height={20} className="text-primary" />
+                </div>
+                <div className="text-xs font-bold tracking-wide text-slate-400 uppercase">
+                  Chamados resolvidos por técnico
+                </div>
+              </div>
+              {summary.productivity_by_technician.length === 0 ? (
+                <p className="text-sm text-slate-500">Nenhum chamado resolvido/fechado ainda.</p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {summary.productivity_by_technician.map((p) => (
+                    <div key={p.name} className="flex items-center justify-between text-[13.5px]">
+                      <span className="text-slate-600">{p.name}</span>
+                      <span className="font-extrabold text-slate-900">{p.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* CMDB + Problem Management (Fase 6) — sem tela de CRUD

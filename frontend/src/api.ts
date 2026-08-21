@@ -20,6 +20,7 @@ import type {
   ServiceUpdate,
   SLARuleOut,
   SLARuleUpdate,
+  TechnicianDashboardSummary,
   TicketCreate,
   TicketDetailOut,
   TicketOut,
@@ -88,6 +89,10 @@ export function createTicket(token: string, payload: TicketCreate): Promise<Tick
 
 export function getDashboardSummary(token: string): Promise<DashboardSummary> {
   return request<DashboardSummary>("/dashboard/summary", { method: "GET" }, token);
+}
+
+export function getMyDashboardSummary(token: string): Promise<TechnicianDashboardSummary> {
+  return request<TechnicianDashboardSummary>("/dashboard/my-summary", { method: "GET" }, token);
 }
 
 export function getKbArticlesByCategory(token: string, categoryId: string): Promise<KBArticleOut[]> {

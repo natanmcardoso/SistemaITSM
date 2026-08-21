@@ -12,6 +12,7 @@ import { MeusAtendimentosPage } from "./pages/MeusAtendimentosPage";
 import { MeusChamadosPage } from "./pages/MeusChamadosPage";
 import { NewTicketPage } from "./pages/NewTicketPage";
 import { QueuePage } from "./pages/QueuePage";
+import { TechnicianDashboardPage } from "./pages/TechnicianDashboardPage";
 import { TicketDetailPage } from "./pages/TicketDetailPage";
 
 function RequireAuth({ children }: { children: ReactElement }) {
@@ -29,6 +30,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/meu-dashboard"
+        element={
+          <RequireAuth>
+            <TechnicianDashboardPage />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/fila"
         element={

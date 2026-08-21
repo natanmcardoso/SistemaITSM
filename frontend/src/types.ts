@@ -96,6 +96,16 @@ export interface DashboardSummary {
   // Fase 6 (CMDB + Problem Management) — mesmo shape de CategoryCount
   top_assets: CategoryCount[];
   top_problems: CategoryCount[];
+  // Fase 14 (Dashboard expandido) — resolved/closed agrupados por técnico
+  productivity_by_technician: CategoryCount[];
+}
+
+// Fase 14 (Dashboard expandido) — dashboard pessoal do técnico
+export interface TechnicianDashboardSummary {
+  meus_chamados: number;
+  pendencias: number;
+  criticos: number;
+  aguardando_resposta: number;
 }
 
 export interface KBArticleOut {

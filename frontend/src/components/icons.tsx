@@ -192,6 +192,15 @@ export function IconShield(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconClock(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </Icon>
+  );
+}
+
 export function IconColumns(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>
