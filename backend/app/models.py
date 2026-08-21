@@ -1,8 +1,10 @@
 """Modelo de dados do Sistema ITSM (schema conceitual em design-itsm-mvp.md §3)."""
 import uuid
+from datetime import date as date_
 from datetime import datetime
+from datetime import time
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text, Time, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -228,3 +230,33 @@ class SLARule(Base):
     priority: Mapped[str] = mapped_column(ticket_priority_enum, nullable=False, unique=True)
     response_time_hours: Mapped[int] = mapped_column(Integer, nullable=False)
     resolution_time_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class BusinessHours(Base):
+    """Calendário de horário comercial (Fase 13) — 1 calendário global fixo
+    pro sistema inteiro (decisão confirmada com o usuário: sem calendário por
+    categoria/prioridade, mesmo espírito "núcleo, não o framework inteiro" já
+    usado no CMDB e no Catálogo de Serviços). Uma linha por dia da semana
+    (`weekday`, convenção de `datetime.weekday()`: 0=segunda...6=domingo);
+    `is_open=False` marca o dia como fechado, com `start_time`/`end_time`
+    nulos. Consumido por app/services/business_hours.py pro cálculo de
+    `sla_due_at` (app/services/sla.py)."""
+
+    __tablename__ = "business_hours"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    weekday: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    is_open: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    start_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    end_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+
+
+class Holiday(Base):
+    """Feriados/exceções do calendário (Fase 13) — datas em que não conta
+    horário comercial mesmo caindo num dia normalmente aberto."""
+
+    __tablename__ = "holidays"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    date: Mapped[date_] = mapped_column(Date, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
