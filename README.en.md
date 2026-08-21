@@ -28,6 +28,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 13 (Calendars — business-hours SLA) completed and tested — the highest-risk phase in the roadmap: `sla_due_at` is now computed in business hours (one global calendar with holidays) instead of running 24/7; "Calendars" tab in Settings; existing tickets recomputed via a backfill
 ✅ Phase 14 (Expanded dashboard + Homepage + User menu) completed and tested — new personal dashboard for the technician, per-technician productivity on the manager dashboard, `/inicio` screen with per-persona shortcuts, user menu (Profile, Priorities, My queue, Schedule)
 ✅ Phase 15 (Reports) completed and tested — CSV/PDF export of the dashboard summary and the ticket list, available to both manager and technician, no new endpoint (PDF via browser print)
+✅ Phase 16 (Automations) completed and tested — "ticket nearing SLA breach" rule (editable threshold), in-app notification (no email/SMS), computed on demand with no persisted table and no background scheduler
 
 ---
 
@@ -135,7 +136,10 @@ graph TB
   - [x] Dashboard summary and ticket list exportable as CSV
   - [x] PDF export via browser print (no new library)
   - [x] `/relatorios` screen available to manager and technician (each exports their own summary)
-- [ ] Phase 16 — Automations
+- [x] Phase 16 — Automations
+  - [x] Fixed "ticket nearing SLA breach" rule (editable threshold)
+  - [x] In-app notification, computed on demand (no email/SMS, no scheduler)
+  - [x] `/automacoes` screen, restricted to manager
 - [ ] Phase 17 — Monitoring (system health)
 - [ ] Phase 18 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
@@ -294,6 +298,9 @@ GET    /groups                      → list groups, with member_ids — require
 POST   /groups                      → create group — requires login with role=admin
 PATCH  /groups/{id}/members         → replaces the member set entirely — requires login with role=admin
 GET    /audit-log                   → list the audit trail — requires login with role=admin
+GET    /automation-rules            → list the automation rule (1 row) — requires login with role=manager
+PATCH  /automation-rules/{id}       → edit threshold_percent/enabled — requires login with role=manager
+GET    /notifications               → list tickets that triggered the rule (computed on demand) — requires login with role=manager
 ```
 
 ### AI triage (Phase 3)
@@ -442,6 +449,14 @@ The whole phase ships without a new endpoint — it only exports what already co
 
 - **`/relatorios` screen:** "Dashboard summary"/"My summary" + ticket list, each section with its own "Export CSV" button, plus an "Export PDF (print)" button covering the whole page.
 - CSV generated client-side (`Blob` + a temporary download link), with a UTF-8 BOM so accented characters open correctly in Excel.
+
+### Automations (Phase 16)
+
+The project had (and still has) no external notification mechanism and no background scheduler — the two most obvious gaps for this phase. Three decisions confirmed with the user before coding: "notify the manager" became an **in-app notification** (no email/SMS); **one fixed rule, only the threshold editable** (no CRUD for new rules); the rule is evaluated **on demand, when queried** — no persisted notifications table, no background job.
+
+- New `automation_rules` table — one row (`sla_near_breach`), with an editable percentage threshold and enabled/disabled flag.
+- `GET /notifications` recomputes from scratch on every call — tickets that have already consumed X% of their SLA window (or already breached), same pattern already used for "SLA breached" on the dashboard.
+- **`/automacoes` screen** (restricted to manager): edits the rule and lists the tickets that triggered it, clickable through to the detail view.
 
 ---
 

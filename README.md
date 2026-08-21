@@ -28,6 +28,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 13 (Calendários — SLA por horário comercial) concluída e testada — a fase de maior risco do roadmap: `sla_due_at` agora é calculado em horário comercial (1 calendário global com feriados), não mais corrido 24/7; aba "Calendários" em Configurações; chamados já existentes recalculados via backfill
 ✅ Fase 14 (Dashboard expandido + Página inicial + Menu do usuário) concluída e testada — dashboard novo do técnico, produtividade por técnico no dashboard do gestor, tela `/inicio` com atalhos por persona, menu do usuário (Perfil, Prioridades, Minha fila, Agendas)
 ✅ Fase 15 (Relatórios) concluída e testada — exportação CSV/PDF do resumo do dashboard e da lista de chamados, disponível pra gestor e técnico, sem endpoint novo (PDF via impressão do navegador)
+✅ Fase 16 (Automações) concluída e testada — regra "chamado perto de estourar o SLA" (limiar editável), notificação dentro do próprio sistema (sem e-mail/SMS), calculada sob demanda sem tabela persistida nem scheduler em background
 
 ---
 
@@ -135,7 +136,10 @@ graph TB
   - [x] Resumo do dashboard e lista de chamados exportáveis em CSV
   - [x] Exportação em PDF via impressão do navegador (sem lib nova)
   - [x] Tela `/relatorios` disponível pra gestor e técnico (cada um exporta o próprio resumo)
-- [ ] Fase 16 — Automações
+- [x] Fase 16 — Automações
+  - [x] Regra fixa "chamado perto de estourar o SLA" (limiar editável)
+  - [x] Notificação dentro do sistema, calculada sob demanda (sem e-mail/SMS, sem scheduler)
+  - [x] Tela `/automacoes`, restrita a gestor
 - [ ] Fase 17 — Monitoramento (saúde do sistema)
 - [ ] Fase 18 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
@@ -294,6 +298,9 @@ GET    /groups                      → lista grupos, com member_ids — requer 
 POST   /groups                      → cria grupo — requer login com role=admin
 PATCH  /groups/{id}/members         → substitui o conjunto de membros por completo — requer login com role=admin
 GET    /audit-log                   → lista a trilha de auditoria — requer login com role=admin
+GET    /automation-rules            → lista a regra de automação (1 linha) — requer login com role=manager
+PATCH  /automation-rules/{id}       → edita threshold_percent/enabled — requer login com role=manager
+GET    /notifications               → lista chamados que dispararam a regra (calculado sob demanda) — requer login com role=manager
 ```
 
 ### Triagem por IA (Fase 3)
@@ -442,6 +449,14 @@ Fase inteira sem endpoint novo — só exporta o que já vem de `GET /dashboard/
 
 - **Tela `/relatorios`:** "Resumo do dashboard"/"Meu resumo" + lista de chamados, cada seção com botão "Exportar CSV" próprio, e "Exportar PDF (imprimir)" cobrindo a página inteira.
 - CSV gerado no cliente (`Blob` + link de download temporário), com BOM UTF-8 pra acentuação abrir certo no Excel.
+
+### Automações (Fase 16)
+
+O projeto não tinha (e continua sem ter) nenhum mecanismo de notificação externa nem scheduler em background — as duas lacunas mais óbvias pra essa fase. Três decisões confirmadas com o usuário antes de codar: "notificar o gestor" virou **notificação dentro do próprio sistema** (sem e-mail/SMS); **1 regra fixa, só o limiar editável** (sem CRUD de regras novas); regra avaliada **sob demanda, ao consultar** — sem tabela de notificações persistida, sem job em background.
+
+- Nova tabela `automation_rules` — 1 linha (`sla_near_breach`), com limiar percentual e ativo/inativo editáveis.
+- `GET /notifications` recalcula do zero a cada chamada — chamados que já consumiram X% do prazo de SLA (ou já estouraram), mesmo padrão já usado pra "SLA estourado" no dashboard.
+- **Tela `/automacoes`** (restrita a gestor): edita a regra e lista os chamados que a dispararam, clicável pro detalhe.
 
 ---
 
