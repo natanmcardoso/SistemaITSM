@@ -114,7 +114,13 @@ graph TB
   - [x] `groups`/`user_groups` (organização/roteamento, não controla permissão) + `audit_log`
   - [x] CRUD de usuários e grupos, trilha de auditoria (só leitura)
   - [x] Tela `/admin`, restrita a admin
-- [ ] Fase 7 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
+- [ ] Fase 12 — Catálogo de Serviços + Serviços
+- [ ] Fase 13 — Calendários (SLA por horário comercial)
+- [ ] Fase 14 — Dashboard expandido + Página inicial + Menu do usuário
+- [ ] Fase 15 — Relatórios (exportação CSV/PDF)
+- [ ] Fase 16 — Automações
+- [ ] Fase 17 — Monitoramento (saúde do sistema)
+- [ ] Fase 18 (futura) — RMM próprio integrado (agente de endpoint, inventário, acesso remoto)
 
 Desenho técnico completo (fluxos, modelo de dados, contrato de API): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
 

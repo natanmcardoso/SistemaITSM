@@ -114,7 +114,13 @@ graph TB
   - [x] `groups`/`user_groups` (organization/routing, doesn't control permission) + `audit_log`
   - [x] Users and groups CRUD, audit trail (read-only)
   - [x] `/admin` screen, restricted to admin
-- [ ] Phase 7 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
+- [ ] Phase 12 — Service Catalog + Services
+- [ ] Phase 13 — Calendars (business-hours SLA)
+- [ ] Phase 14 — Expanded dashboard + Homepage + User menu
+- [ ] Phase 15 — Reports (CSV/PDF export)
+- [ ] Phase 16 — Automations
+- [ ] Phase 17 — Monitoring (system health)
+- [ ] Phase 18 (future) — Custom RMM integration (endpoint agent, inventory, remote access)
 
 Full technical design (flows, data model, API contract): [`design-itsm-mvp.md`](./design-itsm-mvp.md)
 
