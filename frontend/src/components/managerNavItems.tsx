@@ -1,8 +1,9 @@
-import { IconChart, IconHome, IconSettings } from "./icons";
+import { IconChart, IconDownload, IconHome, IconSettings } from "./icons";
 
 // Navegação da sidebar compartilhada pelas telas do gestor (Fase 10 acrescentou
 // "Configurações" ao lado do "Dashboard", que era o único item até aqui —
-// mesmo padrão de technicianNavItems.tsx; Fase 14 acrescentou "Início").
+// mesmo padrão de technicianNavItems.tsx; Fase 14 acrescentou "Início"; Fase
+// 15 acrescentou "Relatórios").
 export function managerNavItems(activeHref: string) {
   return [
     {
@@ -22,6 +23,12 @@ export function managerNavItems(activeHref: string) {
       icon: <IconSettings width={18} height={18} />,
       href: "/configuracoes",
       active: activeHref === "/configuracoes",
+    },
+    {
+      label: "Relatórios",
+      icon: <IconDownload width={18} height={18} />,
+      href: "/relatorios",
+      active: activeHref === "/relatorios",
     },
   ];
 }

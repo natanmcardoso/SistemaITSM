@@ -1,9 +1,10 @@
-import { IconBook, IconChart, IconHome, IconSettings, IconTicket, IconUsers } from "./icons";
+import { IconBook, IconChart, IconDownload, IconHome, IconSettings, IconTicket, IconUsers } from "./icons";
 
 // Navegação da sidebar compartilhada pelas telas do técnico (Fase 8.2:
 // "Meus chamados" e "Fila geral" viraram abas próprias, antes eram duas
 // seções empilhadas numa única tela "Fila de chamados"; Fase 10 acrescentou
-// "Configurações"; Fase 14 acrescentou "Dashboard" e "Início").
+// "Configurações"; Fase 14 acrescentou "Dashboard" e "Início"; Fase 15
+// acrescentou "Relatórios").
 export function technicianNavItems(activeHref: string) {
   return [
     {
@@ -41,6 +42,12 @@ export function technicianNavItems(activeHref: string) {
       icon: <IconSettings width={18} height={18} />,
       href: "/configuracoes",
       active: activeHref === "/configuracoes",
+    },
+    {
+      label: "Relatórios",
+      icon: <IconDownload width={18} height={18} />,
+      href: "/relatorios",
+      active: activeHref === "/relatorios",
     },
   ];
 }

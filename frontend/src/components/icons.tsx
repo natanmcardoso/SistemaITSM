@@ -192,6 +192,26 @@ export function IconShield(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconDownload(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 19h16" />
+    </Icon>
+  );
+}
+
+export function IconPrinter(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M6 9V3h12v6" />
+      <rect x="4" y="9" width="16" height="8" rx="1.5" />
+      <path d="M6 14h12v7H6z" />
+    </Icon>
+  );
+}
+
 export function IconUser(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

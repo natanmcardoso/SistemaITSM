@@ -9,6 +9,7 @@ import { ConfigPage } from "./pages/ConfigPage";
 import { HomePage } from "./pages/HomePage";
 import { PreferencesPage } from "./pages/PreferencesPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { ReportsPage } from "./pages/ReportsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -63,6 +64,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <AgendaPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/relatorios"
+        element={
+          <RequireAuth>
+            <ReportsPage />
           </RequireAuth>
         }
       />
