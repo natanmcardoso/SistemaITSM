@@ -245,3 +245,25 @@ export interface AuditLogOut {
   details: string | null;
   created_at: string;
 }
+
+// Fase 16 (Automações) — 1 regra fixa, só o limiar editável.
+export interface AutomationRuleOut {
+  id: string;
+  key: string;
+  threshold_percent: number;
+  enabled: boolean;
+}
+
+export interface AutomationRuleUpdate {
+  threshold_percent?: number;
+  enabled?: boolean;
+}
+
+export interface AutomationNotification {
+  ticket_id: string;
+  title: string;
+  priority: TicketPriority | null;
+  sla_due_at: string;
+  elapsed_percent: number;
+  breached: boolean;
+}

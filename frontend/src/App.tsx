@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { homeRouteForRole } from "./auth/routing";
 import { AdminPage } from "./pages/AdminPage";
 import { AgendaPage } from "./pages/AgendaPage";
+import { AutomationsPage } from "./pages/AutomationsPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ConfigPage } from "./pages/ConfigPage";
 import { HomePage } from "./pages/HomePage";
@@ -72,6 +73,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <ReportsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/automacoes"
+        element={
+          <RequireAuth>
+            <AutomationsPage />
           </RequireAuth>
         }
       />

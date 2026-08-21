@@ -1,5 +1,8 @@
 import type {
   AuditLogOut,
+  AutomationNotification,
+  AutomationRuleOut,
+  AutomationRuleUpdate,
   BusinessHoursOut,
   BusinessHoursUpdate,
   CategoryCreate,
@@ -243,6 +246,27 @@ export function updateGroupMembers(token: string, groupId: string, payload: Grou
 
 export function listAuditLog(token: string): Promise<AuditLogOut[]> {
   return request<AuditLogOut[]>("/audit-log", { method: "GET" }, token);
+}
+
+// Fase 16 (Automações), restrito a role=manager no backend.
+export function listAutomationRules(token: string): Promise<AutomationRuleOut[]> {
+  return request<AutomationRuleOut[]>("/automation-rules", { method: "GET" }, token);
+}
+
+export function updateAutomationRule(
+  token: string,
+  ruleId: string,
+  payload: AutomationRuleUpdate,
+): Promise<AutomationRuleOut> {
+  return request<AutomationRuleOut>(
+    `/automation-rules/${ruleId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function listNotifications(token: string): Promise<AutomationNotification[]> {
+  return request<AutomationNotification[]>("/notifications", { method: "GET" }, token);
 }
 
 export { ApiError };
