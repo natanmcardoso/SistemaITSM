@@ -260,3 +260,24 @@ class Holiday(Base):
     id: Mapped[uuid.UUID] = _uuid_pk()
     date: Mapped[date_] = mapped_column(Date, nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class AutomationRule(Base):
+    """Automações (Fase 16) — 1 regra fixa, só o limiar editável (decisão
+    confirmada com o usuário: mesmo padrão de SLARule/BusinessHours, sem
+    CRUD de regras novas). `key` identifica a regra (única, sempre
+    "sla_near_breach" nesta fase) — campo de propósito, não editável, deixa
+    a porta aberta pra uma 2ª regra fixa no futuro sem reabrir o schema.
+
+    Sem tabela de notificações persistida: os chamados que disparam a regra
+    são calculados sob demanda em GET /notifications (mesmo padrão já usado
+    pra "SLA estourado" no dashboard — nunca armazenado, sempre recomputado
+    na consulta). Decisão confirmada com o usuário: sem scheduler/job em
+    background nesta fase."""
+
+    __tablename__ = "automation_rules"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    key: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    threshold_percent: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")

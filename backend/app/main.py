@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     audit_log,
+    automations,
     auth,
     business_hours,
     categories,
@@ -40,6 +41,7 @@ app.include_router(holidays.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(audit_log.router)
+app.include_router(automations.router)
 
 
 @app.get("/health")

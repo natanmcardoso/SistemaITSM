@@ -12,7 +12,19 @@ manualmente no Neon.
 from datetime import date, datetime, time, timedelta, timezone
 
 from app.database import SessionLocal
-from app.models import Asset, BusinessHours, Category, Holiday, KBArticle, Problem, Service, SLARule, Ticket, User
+from app.models import (
+    Asset,
+    AutomationRule,
+    BusinessHours,
+    Category,
+    Holiday,
+    KBArticle,
+    Problem,
+    Service,
+    SLARule,
+    Ticket,
+    User,
+)
 from app.security import hash_password
 from app.services.sla import compute_sla_due_at
 
@@ -77,6 +89,13 @@ KB_ARTICLES = [
         "confirmar o processo; o chamado sempre segue pro técnico registrar a solicitação.",
         "Acesso e Conta",
     ),
+]
+
+# Automações (Fase 16) — 1 regra fixa, só o limiar editável (decisão
+# confirmada com o usuário). 80% do prazo de SLA decorrido -> aparece em
+# GET /notifications pro gestor.
+AUTOMATION_RULES = [
+    {"key": "sla_near_breach", "threshold_percent": 80, "enabled": True},
 ]
 
 # Calendário de horário comercial (Fase 13) — 1 calendário global fixo:
@@ -295,6 +314,13 @@ def run():
             article = KBArticle(title=title, content=content, category_id=categories_by_name[cat_name].id)
             db.add(article)
             print(f"[criado] kb_article: {title}")
+
+        for r in AUTOMATION_RULES:
+            existing = db.query(AutomationRule).filter(AutomationRule.key == r["key"]).first()
+            if existing:
+                continue
+            db.add(AutomationRule(**r))
+            print(f"[criado] automation_rule: {r['key']} (threshold={r['threshold_percent']}%)")
 
         for bh in BUSINESS_HOURS:
             existing = db.query(BusinessHours).filter(BusinessHours.weekday == bh["weekday"]).first()

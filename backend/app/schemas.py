@@ -340,3 +340,36 @@ class TechnicianDashboardSummary(BaseModel):
     pendencias: int
     criticos: int
     aguardando_resposta: int
+
+
+class AutomationRuleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    key: str
+    threshold_percent: int
+    enabled: bool
+
+
+class AutomationRuleUpdate(BaseModel):
+    """Todos os campos opcionais — PATCH parcial. `key` não é editável (é a
+    chave que identifica a regra, única — Fase 16)."""
+
+    threshold_percent: Optional[int] = Field(default=None, gt=0, le=100)
+    enabled: Optional[bool] = None
+
+
+class AutomationNotification(BaseModel):
+    """Fase 16 — chamado que disparou a regra "perto de estourar o SLA",
+    calculado sob demanda (sem tabela de notificações persistida — mesmo
+    padrão já usado pra "SLA estourado" no dashboard). `elapsed_percent` =
+    fração já decorrida do prazo (criação → sla_due_at), em relógio corrido;
+    `breached` = já passou de 100% (mesma definição de estouro do resto do
+    sistema)."""
+
+    ticket_id: uuid.UUID
+    title: str
+    priority: Optional[TicketPriority]
+    sla_due_at: datetime
+    elapsed_percent: int
+    breached: bool
