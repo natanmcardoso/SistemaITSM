@@ -26,6 +26,7 @@ Personal portfolio project: a complete IT ticketing and management system (ITSM)
 ✅ Phase 11 (Administration) completed and tested — 4th persona (`admin`), users and groups CRUD, audit trail, new `/admin` screen
 ✅ Phase 12 (Service Catalog + Services) completed and tested — `services` table, "Services" tab in Settings, new `/catalogo` screen for the end user to pick a service when opening a ticket (pre-selects the category)
 ✅ Phase 13 (Calendars — business-hours SLA) completed and tested — the highest-risk phase in the roadmap: `sla_due_at` is now computed in business hours (one global calendar with holidays) instead of running 24/7; "Calendars" tab in Settings; existing tickets recomputed via a backfill
+✅ Phase 14 (Expanded dashboard + Homepage + User menu) completed and tested — new personal dashboard for the technician, per-technician productivity on the manager dashboard, `/inicio` screen with per-persona shortcuts, user menu (Profile, Priorities, My queue, Schedule)
 
 ---
 
@@ -125,7 +126,10 @@ graph TB
   - [x] `sla_due_at` computed in business hours (fixed America/Sao_Paulo timezone), with holidays
   - [x] `GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`; "Calendars" tab in Settings
   - [x] Backfill of existing tickets with the new logic
-- [ ] Phase 14 — Expanded dashboard + Homepage + User menu
+- [x] Phase 14 — Expanded dashboard + Homepage + User menu
+  - [x] Technician's personal dashboard (`/meu-dashboard`); per-technician productivity on the manager dashboard
+  - [x] Homepage (`/inicio`) with per-persona shortcuts — doesn't replace the role-based login destination
+  - [x] User menu: Profile (every persona), My queue/Priorities/Schedule (technician)
 - [ ] Phase 15 — Reports (CSV/PDF export)
 - [ ] Phase 16 — Automations
 - [ ] Phase 17 — Monitoring (system health)
@@ -257,14 +261,15 @@ GET    /auth/me                     → authenticated user's data (requires Bear
 POST   /tickets                     → creates a ticket (AI triage runs automatically; optional service_id inherits the service's category) — requires login
 GET    /tickets                     → list (filters: status, priority, category_id, assignee_id, requester_id, query, sla=breached) — requires login
 GET    /tickets/{id}                → detail + interaction history — requires login
-PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login
-POST   /tickets/{id}/interactions   → logs a history entry on the ticket — requires login
+PATCH  /tickets/{id}                → updates status/priority/category_id/assignee_id — requires login with role=technician
+POST   /tickets/{id}/interactions   → logs a history entry on the ticket — requires login with role=technician
 POST   /tickets/{id}/resolve-by-user → user closes their own ticket via the AI suggestion — requires login (requester only)
 GET    /kb-articles                 → lists/searches KB articles (optional ?category_id= and ?query= filters) — requires login
 GET    /kb-articles/{id}            → detail for one article — requires login
 POST   /kb-articles                 → creates an article — requires login with role=technician
 PATCH  /kb-articles/{id}            → edits an article (partial) — requires login with role=technician
-GET    /dashboard/summary           → manager dashboard metrics — requires login with role=manager
+GET    /dashboard/summary           → manager dashboard metrics (includes per-technician productivity) — requires login with role=manager
+GET    /dashboard/my-summary        → technician's personal dashboard metrics — requires login with role=technician
 GET    /categories                  → list categories — requires login with role=technician/manager
 POST   /categories                  → create category (blocks duplicate name, case-insensitive) — requires login with role=technician/manager
 PATCH  /categories/{id}             → edit category (partial) — requires login with role=technician/manager
@@ -417,6 +422,15 @@ The highest-risk phase in the roadmap: it reopened the `sla_due_at` calculation 
 - The calculation engine (`add_business_hours`) is isolated and exhaustively tested (12 cases: weekend, holiday, full window, invalid configuration, timezone conversion, etc.) before being wired into the real `compute_sla_due_at`.
 - **Calendars tab in Settings:** edits each weekday's hours and creates/removes holidays (`GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`, restricted to `technician`/`manager`).
 - Existing tickets (still unresolved/open) were recomputed via a manual backfill script, run once against the database — same pattern as the Phase 4 SLA backfill.
+
+### Expanded dashboard + Homepage + User menu (Phase 14)
+
+Three decisions confirmed with the user before coding (the original request was too vague to start from directly): "my tickets/pending/awaiting response" are personal by nature — the **technician got their own dashboard**, the manager's only gained "productivity per technician"; the Homepage **doesn't replace** the role-based login destination, it's an extra screen; "Schedule" (the vaguest item in the request) became a **personal calendar of active tickets by SLA due date**, not real time-slot scheduling — that concept doesn't exist in the system.
+
+- **Technician dashboard** (`/meu-dashboard`): my tickets, pending, critical tickets, and awaiting response — all scoped to the technician's own assigned tickets, no new status in the database.
+- **Team productivity:** new card on the manager dashboard — tickets resolved/closed per technician.
+- **Homepage** (`/inicio`): a hub with per-persona shortcuts, available in navigation for anyone who wants to come back to a summary of what they can do.
+- **User menu** (dropdown on the sidebar's identity block): Profile (every persona, read-only); My queue, Priorities (a default filter saved per browser, applied when the queue opens with no filter) and Schedule (active tickets sorted by SLA) — these three only for the technician, the only persona with a personal queue.
 
 ---
 

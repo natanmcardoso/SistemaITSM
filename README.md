@@ -26,6 +26,7 @@ Projeto de portfólio pessoal: um sistema de chamados e gerenciamento de TI (ITS
 ✅ Fase 11 (Administração) concluída e testada — 4ª persona (`admin`), CRUD de usuários e grupos, trilha de auditoria, nova tela `/admin`
 ✅ Fase 12 (Catálogo de Serviços + Serviços) concluída e testada — tabela `services`, aba "Serviços" em Configurações, nova tela `/catalogo` pro usuário final escolher um serviço ao abrir chamado (pré-seleciona a categoria)
 ✅ Fase 13 (Calendários — SLA por horário comercial) concluída e testada — a fase de maior risco do roadmap: `sla_due_at` agora é calculado em horário comercial (1 calendário global com feriados), não mais corrido 24/7; aba "Calendários" em Configurações; chamados já existentes recalculados via backfill
+✅ Fase 14 (Dashboard expandido + Página inicial + Menu do usuário) concluída e testada — dashboard novo do técnico, produtividade por técnico no dashboard do gestor, tela `/inicio` com atalhos por persona, menu do usuário (Perfil, Prioridades, Minha fila, Agendas)
 
 ---
 
@@ -125,7 +126,10 @@ graph TB
   - [x] `sla_due_at` calculado em horário comercial (fuso fixo América/São Paulo), com feriados
   - [x] `GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`; aba "Calendários" em Configurações
   - [x] Backfill dos chamados já existentes com a nova lógica
-- [ ] Fase 14 — Dashboard expandido + Página inicial + Menu do usuário
+- [x] Fase 14 — Dashboard expandido + Página inicial + Menu do usuário
+  - [x] Dashboard pessoal do técnico (`/meu-dashboard`); produtividade por técnico no dashboard do gestor
+  - [x] Página inicial (`/inicio`) com atalhos por persona — não substitui o destino de login por role
+  - [x] Menu do usuário: Perfil (todas as personas), Minha fila/Prioridades/Agendas (técnico)
 - [ ] Fase 15 — Relatórios (exportação CSV/PDF)
 - [ ] Fase 16 — Automações
 - [ ] Fase 17 — Monitoramento (saúde do sistema)
@@ -257,14 +261,15 @@ GET    /auth/me                     → dados do usuário autenticado (requer Be
 POST   /tickets                     → cria chamado (triagem por IA roda automaticamente; service_id opcional herda a categoria do serviço) — requer login
 GET    /tickets                     → lista (filtros: status, priority, category_id, assignee_id, requester_id, query, sla=breached) — requer login
 GET    /tickets/{id}                → detalhe + histórico de interações — requer login
-PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login
-POST   /tickets/{id}/interactions   → registra uma entrada de histórico no chamado — requer login
+PATCH  /tickets/{id}                → atualiza status/priority/category_id/assignee_id — requer login com role=technician
+POST   /tickets/{id}/interactions   → registra uma entrada de histórico no chamado — requer login com role=technician
 POST   /tickets/{id}/resolve-by-user → usuário fecha o próprio chamado via sugestão da IA — requer login (só o solicitante)
 GET    /kb-articles                 → lista/busca artigos da KB (filtros opcionais ?category_id= e ?query=) — requer login
 GET    /kb-articles/{id}            → detalhe de um artigo — requer login
 POST   /kb-articles                 → cria artigo — requer login com role=technician
 PATCH  /kb-articles/{id}            → edita artigo (parcial) — requer login com role=technician
-GET    /dashboard/summary           → métricas do dashboard do gestor — requer login com role=manager
+GET    /dashboard/summary           → métricas do dashboard do gestor (inclui produtividade por técnico) — requer login com role=manager
+GET    /dashboard/my-summary        → métricas do dashboard pessoal do técnico — requer login com role=technician
 GET    /categories                  → lista categorias — requer login com role=technician/manager
 POST   /categories                  → cria categoria (barra nome duplicado, case-insensitive) — requer login com role=technician/manager
 PATCH  /categories/{id}             → edita categoria (parcial) — requer login com role=technician/manager
@@ -417,6 +422,15 @@ A fase de maior risco do roadmap: reabriu o cálculo de `sla_due_at` já fechado
 - Motor de cálculo (`add_business_hours`) isolado e testado exaustivamente (12 casos: fim de semana, feriado, janela cheia, configuração inválida, conversão de fuso, etc.) antes de ser plugado no `compute_sla_due_at` real.
 - **Aba Calendários em Configurações:** edita o horário de cada dia da semana e cadastra/remove feriados (`GET/PATCH /business-hours`, `GET/POST/DELETE /holidays`, restritos a `technician`/`manager`).
 - Chamados já existentes (ainda não resolvidos/fechados) foram recalculados via um script de backfill manual, rodado uma vez contra o banco — mesmo padrão do backfill de SLA da Fase 4.
+
+### Dashboard expandido + Página inicial + Menu do usuário (Fase 14)
+
+Três decisões confirmadas com o usuário antes de codar (o pedido original era vago demais pra começar direto): "meus chamados/pendências/aguardando resposta" são pessoais — o **técnico ganhou um dashboard próprio**, o gestor só somou "produtividade por técnico"; a Página inicial **não substitui** o destino de login por role, é uma tela a mais; "Agendas" (item mais ambíguo do pedido) virou **calendário pessoal de chamados por vencimento de SLA**, não agendamento de horário de verdade (esse conceito não existe no sistema).
+
+- **Dashboard do técnico** (`/meu-dashboard`): meus chamados, pendências, chamados críticos e aguardando resposta — todos escopados aos próprios chamados atribuídos, sem status novo no banco.
+- **Produtividade da equipe:** novo card no dashboard do gestor — chamados resolvidos/fechados por técnico.
+- **Página inicial** (`/inicio`): hub com atalhos por persona, disponível na navegação pra quem quiser voltar pra um resumo do que pode fazer.
+- **Menu do usuário** (dropdown no bloco de identidade da sidebar): Perfil (todas as personas, só leitura); Minha fila, Prioridades (filtro padrão salvo por navegador, aplicado ao abrir a fila sem filtro nenhum) e Agendas (chamados ativos ordenados por SLA) — essas três só pro técnico, que é quem tem fila pessoal.
 
 ---
 
