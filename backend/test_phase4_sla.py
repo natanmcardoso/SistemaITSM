@@ -70,14 +70,20 @@ def run():
         name="Gestor SLA Teste", email="teste.sla.manager@example.com",
         role="manager", password_hash="x",
     )
-    db.add_all([requester, manager])
+    technician = User(
+        name="Técnico SLA Teste", email="teste.sla.technician@example.com",
+        role="technician", password_hash="x",
+    )
+    db.add_all([requester, manager, technician])
     db.commit()
     db.refresh(requester)
     db.refresh(manager)
-    print(f"[setup] requester={requester.id} manager={manager.id}")
+    db.refresh(technician)
+    print(f"[setup] requester={requester.id} manager={manager.id} technician={technician.id}")
 
     auth_headers = {"Authorization": f"Bearer {create_access_token(requester)}"}
     manager_headers = {"Authorization": f"Bearer {create_access_token(manager)}"}
+    tech_headers = {"Authorization": f"Bearer {create_access_token(technician)}"}
 
     high_hours, high_created_rule = _ensure_rule(db, "high", 8)
     low_hours, low_created_rule = _ensure_rule(db, "low", 72)
@@ -119,7 +125,13 @@ def run():
         resp = client.get(f"/tickets/{ticket_id}", headers=auth_headers)
         created_at = datetime.fromisoformat(resp.json()["created_at"])
 
+        # PATCH exige role=technician (achado durante a Fase 13, corrigido no
+        # backend) — checa o guard antes de checar o cálculo em si.
         resp = client.patch(f"/tickets/{ticket_id}", json={"priority": "low"}, headers=auth_headers)
+        assert resp.status_code == 403, resp.text
+        print("[OK] PATCH /tickets/{id} com usuário final -> 403")
+
+        resp = client.patch(f"/tickets/{ticket_id}", json={"priority": "low"}, headers=tech_headers)
         assert resp.status_code == 200, resp.text
         updated = resp.json()
         new_due_at = datetime.fromisoformat(updated["sla_due_at"])
@@ -160,7 +172,9 @@ def run():
             db.query(SLARule).filter(SLARule.priority == "high").delete()
         if low_created_rule:
             db.query(SLARule).filter(SLARule.priority == "low").delete()
-        db.query(User).filter(User.id.in_([requester.id, manager.id])).delete(synchronize_session=False)
+        db.query(User).filter(User.id.in_([requester.id, manager.id, technician.id])).delete(
+            synchronize_session=False
+        )
         db.commit()
         db.close()
         print("[OK] limpeza: dados de teste removidos")

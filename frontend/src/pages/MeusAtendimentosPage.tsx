@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { managerNavItems } from "../components/managerNavItems";
 import { Sidebar } from "../components/Sidebar";
 import { TicketQueueBoard } from "../components/TicketQueueBoard";
 import { technicianNavItems } from "../components/technicianNavItems";
@@ -8,19 +9,24 @@ import { technicianNavItems } from "../components/technicianNavItems";
 // logado. Rota separada de /meus-chamados (essa é do usuário final, lista
 // os chamados que ELE abriu — conceito diferente, por isso o nome de rota
 // próprio pra não colidir).
+//
+// Role-aware desde a Fase 13 (mesmo fix de QueuePage.tsx) — sem link de
+// entrada pro gestor hoje, mas fecha a mesma classe de bug pra quem acessar
+// a URL direto.
 export function MeusAtendimentosPage() {
   const { auth, signOut } = useAuth();
   const navigate = useNavigate();
 
   if (!auth) return null;
+  const isManager = auth.user.role === "manager";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
       <Sidebar
-        groupLabel="Chamados"
-        navItems={technicianNavItems("/meus-atendimentos")}
+        groupLabel={isManager ? "Gestão" : "Chamados"}
+        navItems={isManager ? managerNavItems("/meus-atendimentos") : technicianNavItems("/meus-atendimentos")}
         userName={auth.user.name}
-        userRoleLabel="Técnico(a)"
+        userRoleLabel={isManager ? "Gestor(a)" : "Técnico(a)"}
         onSignOut={() => {
           signOut();
           navigate("/login");

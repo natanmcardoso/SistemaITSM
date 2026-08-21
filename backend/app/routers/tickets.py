@@ -2,8 +2,16 @@
 
 Guard de autenticação plugado na Fase 4 (tela 3/3, junto com o dashboard do
 gestor) — qualquer usuário logado (end_user/technician/manager) pode chamar
-estes endpoints, sem restrição por role: usuário final cria os próprios
-chamados, técnico gerencia a fila.
+a maioria destes endpoints, sem restrição por role: usuário final cria os
+próprios chamados, técnico gerencia a fila.
+
+Exceção, achada e corrigida a partir de feedback do usuário testando a Fase
+13: PATCH /tickets/{id} (editar status/prioridade/categoria/atribuição) e
+POST /tickets/{id}/interactions (registrar histórico) exigem role=technician
+— antes qualquer usuário logado (inclusive gestor) conseguia editar um
+chamado direto pela API, mesmo a tela escondendo o botão pra quem não é
+técnico. `resolve-by-user` continua aberto (é a única mutação que o usuário
+final tem sobre o próprio chamado).
 """
 import uuid
 from datetime import datetime, timezone
@@ -17,7 +25,7 @@ from sqlalchemy.orm import Session, aliased, selectinload
 from app.database import get_db
 from app.models import TICKET_STATUSES, Interaction, Service, Ticket, User
 from app.schemas import InteractionCreate, InteractionOut, TicketCreate, TicketDetailOut, TicketOut, TicketUpdate
-from app.security import get_current_user
+from app.security import get_current_user, require_role
 from app.services.sla import compute_sla_due_at
 from app.services.triage import triage_ticket
 
@@ -175,7 +183,11 @@ def get_ticket(ticket_id: uuid.UUID, db: Session = Depends(get_db)):
     return ticket
 
 
-@router.patch("/{ticket_id}", response_model=TicketOut)
+@router.patch(
+    "/{ticket_id}",
+    response_model=TicketOut,
+    dependencies=[Depends(require_role("technician"))],
+)
 def update_ticket(ticket_id: uuid.UUID, payload: TicketUpdate, db: Session = Depends(get_db)):
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if ticket is None:
@@ -202,7 +214,12 @@ def update_ticket(ticket_id: uuid.UUID, payload: TicketUpdate, db: Session = Dep
     return ticket
 
 
-@router.post("/{ticket_id}/interactions", response_model=InteractionOut, status_code=201)
+@router.post(
+    "/{ticket_id}/interactions",
+    response_model=InteractionOut,
+    status_code=201,
+    dependencies=[Depends(require_role("technician"))],
+)
 def create_interaction(
     ticket_id: uuid.UUID,
     payload: InteractionCreate,
@@ -211,7 +228,8 @@ def create_interaction(
 ):
     """Registra uma entrada de histórico no chamado (tela de detalhe, Fase 4).
 
-    Sem restrição de role — mesmo padrão dos outros endpoints de tickets.
+    Restrito a role=technician (achado durante a Fase 13 — ver docstring do
+    módulo): antes qualquer usuário logado podia registrar interação.
     """
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if ticket is None:

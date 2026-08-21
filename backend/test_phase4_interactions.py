@@ -45,6 +45,7 @@ def run():
     print(f"[setup] requester={requester.id} technician={technician.id} ticket={ticket.id}")
 
     tech_headers = {"Authorization": f"Bearer {create_access_token(technician)}"}
+    requester_headers = {"Authorization": f"Bearer {create_access_token(requester)}"}
 
     interaction_id = None
     try:
@@ -52,6 +53,13 @@ def run():
         resp = client.post(f"/tickets/{ticket.id}/interactions", json={"content": "sem token"})
         assert resp.status_code == 401, resp.text
         print("[OK] POST /tickets/{id}/interactions sem token -> 401")
+
+        # --- guard: usuário final não pode registrar interação (achado durante a Fase 13) ---
+        resp = client.post(
+            f"/tickets/{ticket.id}/interactions", json={"content": "tentativa indevida"}, headers=requester_headers
+        )
+        assert resp.status_code == 403, resp.text
+        print("[OK] POST /tickets/{id}/interactions com usuário final -> 403")
 
         # --- ticket inexistente -> 404 ---
         resp = client.post(

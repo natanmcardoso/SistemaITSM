@@ -15,6 +15,10 @@ Nota 2: desde a Fase 4 (tela 3/3), os endpoints de /tickets exigem token
 (qualquer usuário autenticado) — o token é gerado direto via
 create_access_token, sem passar por /auth/login (o requester de teste tem
 password_hash fake, não uma senha real).
+
+Nota 3: desde a Fase 13 (achado durante o teste manual do usuário), PATCH
+/tickets/{id} exige role=technician especificamente — as demais operações
+(POST, GET) continuam abertas a qualquer usuário autenticado.
 """
 from fastapi.testclient import TestClient
 
@@ -116,6 +120,14 @@ def run():
         resp = client.get("/tickets/00000000-0000-0000-0000-000000000000", headers=auth_headers)
         assert resp.status_code == 404
         print("[OK] GET /tickets/{id} inexistente -> 404")
+
+        # --- PATCH /tickets/{id}: guard, usuário final não pode (achado durante a Fase 13) ---
+        end_user_headers = {"Authorization": f"Bearer {create_access_token(requester)}"}
+        resp = client.patch(
+            f"/tickets/{created_ticket_id}", json={"status": "in_progress"}, headers=end_user_headers
+        )
+        assert resp.status_code == 403, resp.text
+        print("[OK] PATCH /tickets/{id} com usuário final -> 403")
 
         # --- PATCH /tickets/{id} ---
         resp = client.patch(

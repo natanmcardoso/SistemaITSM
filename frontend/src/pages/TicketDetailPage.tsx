@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { addInteraction, ApiError, getTicketDetail, updateTicket } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import { managerNavItems } from "../components/managerNavItems";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { Sidebar } from "../components/Sidebar";
 import { StatusBadge } from "../components/StatusBadge";
@@ -32,16 +33,26 @@ function formatDate(iso: string): string {
 // campo de ação"). Único ponto do frontend que chama PATCH /tickets/{id} e
 // POST /tickets/{id}/interactions.
 //
-// Serve 2 personas com o mesmo componente: técnico vê a sidebar + o painel
-// de ações (atribuir/status/prioridade/categoria); usuário final vê só a
-// leitura (info + sugestão da IA + histórico) num header leve, igual ao das
-// telas dele — sem ações, porque a única "ação" que o usuário final tem
-// sobre o próprio chamado é resolve-by-user, na tela de novo chamado.
+// Serve 3 personas com o mesmo componente: técnico vê a sidebar + o painel
+// de ações (atribuir/status/prioridade/categoria); gestor vê a mesma sidebar
+// (identidade "Gestão", sem os itens de navegação do técnico) mas só
+// leitura, sem o painel de ações; usuário final vê só a leitura num header
+// leve, sem sidebar — sem ações, porque a única "ação" que o usuário final
+// tem sobre o próprio chamado é resolve-by-user, na tela de novo chamado.
+//
+// Achado durante teste manual do usuário na Fase 13: o gestor, ao chegar
+// aqui pelos links do dashboard (Fase 5.3 — "SLA estourado", categoria,
+// status), caía no branch do usuário final (sem sidebar, "Voltar pra meus
+// chamados") — perdia a identidade "Gestão" e o link de volta não fazia
+// sentido pra ele. Backend também restringiu PATCH/interactions a
+// role=technician nesta mesma correção (antes qualquer usuário logado
+// conseguia editar via API direto, mesmo com o botão escondido na tela).
 export function TicketDetailPage() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const { auth, signOut } = useAuth();
   const navigate = useNavigate();
   const isTechnician = auth?.user.role === "technician";
+  const isManager = auth?.user.role === "manager";
 
   const [ticket, setTicket] = useState<TicketDetailOut | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -283,45 +294,51 @@ export function TicketDetailPage() {
               </div>
             )}
 
-            <form onSubmit={handleAddInteraction}>
-              <textarea
-                value={newInteraction}
-                onChange={(e) => setNewInteraction(e.target.value)}
-                placeholder="Registrar uma atualização sobre o atendimento..."
-                rows={3}
-                className="mb-3 w-full resize-none rounded-[10px] border-[1.5px] border-slate-300 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none"
-              />
-              {interactionError && <p className="mb-3 text-sm text-red-600">{interactionError}</p>}
-              <button
-                type="submit"
-                disabled={addingInteraction || !newInteraction.trim()}
-                className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60"
-              >
-                {addingInteraction ? "Registrando..." : "Registrar atualização"}
-              </button>
-            </form>
+            {/* Registrar atualização — só técnico (backend restringe igual, Fase 13) */}
+            {isTechnician && (
+              <form onSubmit={handleAddInteraction}>
+                <textarea
+                  value={newInteraction}
+                  onChange={(e) => setNewInteraction(e.target.value)}
+                  placeholder="Registrar uma atualização sobre o atendimento..."
+                  rows={3}
+                  className="mb-3 w-full resize-none rounded-[10px] border-[1.5px] border-slate-300 px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none"
+                />
+                {interactionError && <p className="mb-3 text-sm text-red-600">{interactionError}</p>}
+                <button
+                  type="submit"
+                  disabled={addingInteraction || !newInteraction.trim()}
+                  className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60"
+                >
+                  {addingInteraction ? "Registrando..." : "Registrar atualização"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       ) : null}
     </>
   );
 
-  if (isTechnician) {
+  if (isTechnician || isManager) {
     return (
       <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
         <Sidebar
-          groupLabel="Chamados"
-          navItems={technicianNavItems("")}
+          groupLabel={isTechnician ? "Chamados" : "Gestão"}
+          navItems={isTechnician ? technicianNavItems("") : managerNavItems("")}
           userName={auth.user.name}
-          userRoleLabel="Técnico(a)"
+          userRoleLabel={isTechnician ? "Técnico(a)" : "Gestor(a)"}
           onSignOut={() => {
             signOut();
             navigate("/login");
           }}
         />
         <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-          <Link to="/fila" className="mb-4 inline-block text-sm font-bold text-slate-500 hover:text-slate-700">
-            ← Voltar pra fila
+          <Link
+            to={isTechnician ? "/fila" : "/dashboard"}
+            className="mb-4 inline-block text-sm font-bold text-slate-500 hover:text-slate-700"
+          >
+            ← Voltar pra {isTechnician ? "fila" : "dashboard"}
           </Link>
           {content}
         </div>
