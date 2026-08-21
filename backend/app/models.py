@@ -281,3 +281,28 @@ class AutomationRule(Base):
     key: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     threshold_percent: Mapped[int] = mapped_column(Integer, nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+
+
+class RequestLog(Base):
+    """Monitoramento (Fase 17) — log persistido de requisições HTTP, 1 linha
+    por requisição (exceto `/health`, excluído de propósito por ser só ping
+    de infra sem significado de negócio). Decisão confirmada com o usuário:
+    log persistido em vez de contador em memória (sobrevive a restart do
+    backend, que é rotina neste projeto — ver CLAUDE.md), mesmo sem
+    scheduler/job em background pra isso (a escrita acontece inline, no
+    middleware, a cada requisição). Sem rotina de limpeza/retenção nesta
+    fase — cresce sem limite; os endpoints de leitura sempre filtram por
+    janela de tempo (não fazem `SELECT *`), então o custo de consulta não
+    cresce junto (fica documentado como próximo passo natural, não
+    implementado)."""
+
+    __tablename__ = "request_logs"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    method: Mapped[str] = mapped_column(String, nullable=False)
+    path: Mapped[str] = mapped_column(String, nullable=False)
+    status_code: Mapped[int] = mapped_column(Integer, nullable=False)
+    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )

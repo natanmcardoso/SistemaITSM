@@ -373,3 +373,32 @@ class AutomationNotification(BaseModel):
     sla_due_at: datetime
     elapsed_percent: int
     breached: bool
+
+
+class RequestLogEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    method: str
+    path: str
+    status_code: int
+    duration_ms: int
+    created_at: datetime
+
+
+class MonitoringSummary(BaseModel):
+    """Fase 17 — saúde do próprio sistema, não dos `assets` do CMDB nem RMM.
+
+    `uptime_since`/`uptime_seconds` vêm do horário em que o processo do
+    backend subiu (em memória — reseta a cada restart, e reiniciar o
+    backend manualmente é rotina neste projeto, ver CLAUDE.md). O resto vem
+    do log persistido de requisições (`request_logs`, Fase 17), sempre
+    filtrado pela janela `window_hours` — nunca a tabela inteira.
+    """
+
+    uptime_since: datetime
+    uptime_seconds: int
+    window_hours: int
+    total_requests: int
+    error_requests: int
+    error_rate_percent: float
+    recent_errors: list[RequestLogEntry]
