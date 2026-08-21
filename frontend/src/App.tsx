@@ -13,6 +13,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
+import { MonitoringPage } from "./pages/MonitoringPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MeusAtendimentosPage } from "./pages/MeusAtendimentosPage";
 import { MeusChamadosPage } from "./pages/MeusChamadosPage";
@@ -81,6 +82,14 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <AutomationsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/monitoramento"
+        element={
+          <RequireAuth>
+            <MonitoringPage />
           </RequireAuth>
         }
       />

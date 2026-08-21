@@ -18,6 +18,7 @@ import type {
   KBArticleCreate,
   KBArticleOut,
   KBArticleUpdate,
+  MonitoringSummary,
   ServiceCreate,
   ServiceOut,
   ServiceUpdate,
@@ -267,6 +268,11 @@ export function updateAutomationRule(
 
 export function listNotifications(token: string): Promise<AutomationNotification[]> {
   return request<AutomationNotification[]>("/notifications", { method: "GET" }, token);
+}
+
+// Fase 17 (Monitoramento), restrito a role=manager no backend.
+export function getMonitoringSummary(token: string): Promise<MonitoringSummary> {
+  return request<MonitoringSummary>("/monitoring/summary", { method: "GET" }, token);
 }
 
 export { ApiError };

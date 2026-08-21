@@ -192,6 +192,14 @@ export function IconShield(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconActivity(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M3 12h4l2.5-7L13 19l2.5-7H21" />
+    </Icon>
+  );
+}
+
 export function IconDownload(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

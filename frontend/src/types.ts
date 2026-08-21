@@ -267,3 +267,22 @@ export interface AutomationNotification {
   elapsed_percent: number;
   breached: boolean;
 }
+
+// Fase 17 (Monitoramento) — saúde do próprio sistema.
+export interface RequestLogEntry {
+  method: string;
+  path: string;
+  status_code: number;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface MonitoringSummary {
+  uptime_since: string;
+  uptime_seconds: number;
+  window_hours: number;
+  total_requests: number;
+  error_requests: number;
+  error_rate_percent: number;
+  recent_errors: RequestLogEntry[];
+}

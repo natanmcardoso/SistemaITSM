@@ -1,9 +1,10 @@
-import { IconAlertTriangle, IconChart, IconDownload, IconHome, IconSettings } from "./icons";
+import { IconActivity, IconAlertTriangle, IconChart, IconDownload, IconHome, IconSettings } from "./icons";
 
 // Navegação da sidebar compartilhada pelas telas do gestor (Fase 10 acrescentou
 // "Configurações" ao lado do "Dashboard", que era o único item até aqui —
 // mesmo padrão de technicianNavItems.tsx; Fase 14 acrescentou "Início"; Fase
-// 15 acrescentou "Relatórios"; Fase 16 acrescentou "Automações").
+// 15 acrescentou "Relatórios"; Fase 16 acrescentou "Automações"; Fase 17
+// acrescentou "Monitoramento").
 export function managerNavItems(activeHref: string) {
   return [
     {
@@ -35,6 +36,12 @@ export function managerNavItems(activeHref: string) {
       icon: <IconAlertTriangle width={18} height={18} />,
       href: "/automacoes",
       active: activeHref === "/automacoes",
+    },
+    {
+      label: "Monitoramento",
+      icon: <IconActivity width={18} height={18} />,
+      href: "/monitoramento",
+      active: activeHref === "/monitoramento",
     },
   ];
 }
