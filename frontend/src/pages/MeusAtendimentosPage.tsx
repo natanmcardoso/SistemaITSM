@@ -27,6 +27,7 @@ export function MeusAtendimentosPage() {
         navItems={isManager ? managerNavItems("/meus-atendimentos") : technicianNavItems("/meus-atendimentos")}
         userName={auth.user.name}
         userRoleLabel={isManager ? "Gestor(a)" : "Técnico(a)"}
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

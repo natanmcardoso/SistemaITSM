@@ -3,9 +3,12 @@ import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { homeRouteForRole } from "./auth/routing";
 import { AdminPage } from "./pages/AdminPage";
+import { AgendaPage } from "./pages/AgendaPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ConfigPage } from "./pages/ConfigPage";
 import { HomePage } from "./pages/HomePage";
+import { PreferencesPage } from "./pages/PreferencesPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -36,6 +39,30 @@ function AppRoutes() {
         element={
           <RequireAuth>
             <HomePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/perfil"
+        element={
+          <RequireAuth>
+            <ProfilePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/preferencias"
+        element={
+          <RequireAuth>
+            <PreferencesPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/agenda"
+        element={
+          <RequireAuth>
+            <AgendaPage />
           </RequireAuth>
         }
       />

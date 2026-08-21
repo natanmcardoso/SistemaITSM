@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { IconLogout, IconMenu, IconTicket, IconX } from "./icons";
+import { IconClock, IconFlag, IconLogout, IconMenu, IconTicket, IconUser, IconUsers, IconX } from "./icons";
 
 interface SidebarNavItem {
   label: string;
@@ -9,11 +9,33 @@ interface SidebarNavItem {
   active?: boolean;
 }
 
+// Fase 14 — menu do usuário (dropdown no bloco de identidade, rodapé da
+// sidebar). Calculado aqui dentro a partir do `userRole`, em vez de cada
+// tela montar a própria lista — evita repetir a mesma lógica de role nos ~9
+// lugares que usam <Sidebar>. Escopo por persona (decisão confirmada com o
+// usuário antes de codar): "Perfil" pra todo mundo; "Minha fila",
+// "Prioridades" (preferências de filtro da fila) e "Agendas" (chamados por
+// vencimento de SLA) só fazem sentido pro técnico — gestor/admin não têm
+// fila pessoal, então só ganham "Perfil".
+type UserRole = "end_user" | "technician" | "manager" | "admin";
+
+function userMenuItemsForRole(role: UserRole): SidebarNavItem[] {
+  const perfil: SidebarNavItem = { label: "Perfil", icon: <IconUser width={16} height={16} />, href: "/perfil" };
+  if (role !== "technician") return [perfil];
+  return [
+    perfil,
+    { label: "Minha fila", icon: <IconUsers width={16} height={16} />, href: "/meus-atendimentos" },
+    { label: "Prioridades", icon: <IconFlag width={16} height={16} />, href: "/preferencias" },
+    { label: "Agendas", icon: <IconClock width={16} height={16} />, href: "/agenda" },
+  ];
+}
+
 interface SidebarProps {
   groupLabel: string;
   navItems: SidebarNavItem[];
   userName: string;
   userRoleLabel: string;
+  userRole: UserRole;
   onSignOut: () => void;
 }
 
@@ -22,15 +44,18 @@ function SidebarBody({
   navItems,
   userName,
   userRoleLabel,
+  userRole,
   onSignOut,
   onNavigate,
 }: SidebarProps & { onNavigate?: () => void }) {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const initials = userName
     .split(" ")
     .map((part) => part[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
+  const userMenuItems = userMenuItemsForRole(userRole);
 
   return (
     <div className="flex h-full w-64 shrink-0 flex-col bg-primary px-4 py-5 text-white">
@@ -60,21 +85,53 @@ function SidebarBody({
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-2.5 border-t border-white/15 pt-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-[13px] font-bold">
-          {initials}
+      {/* Menu do usuário (Fase 14) — clique no bloco de identidade abre um
+          dropdown pra cima (o bloco fica no rodapé) com Perfil + itens por
+          role. Backdrop full-screen fecha ao clicar fora, mesmo padrão já
+          usado no drawer mobile. */}
+      <div className="relative border-t border-white/15 pt-4">
+        {userMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
+            <div className="absolute bottom-full left-0 z-20 mb-2 w-56 rounded-xl border border-slate-200 bg-white p-1.5 text-slate-700 shadow-[0_4px_16px_rgba(16,24,40,.16)]">
+              {userMenuItems.map((item) => (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    onNavigate?.();
+                  }}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setUserMenuOpen((v) => !v)}
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 text-left hover:bg-white/10"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-[13px] font-bold">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold">{userName}</div>
+              <div className="text-[11.5px] text-white/60">{userRoleLabel}</div>
+            </div>
+          </button>
+          <button
+            onClick={onSignOut}
+            aria-label="Sair"
+            className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10 hover:text-white"
+          >
+            <IconLogout width={16} height={16} />
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold">{userName}</div>
-          <div className="text-[11.5px] text-white/60">{userRoleLabel}</div>
-        </div>
-        <button
-          onClick={onSignOut}
-          aria-label="Sair"
-          className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10 hover:text-white"
-        >
-          <IconLogout width={16} height={16} />
-        </button>
       </div>
     </div>
   );

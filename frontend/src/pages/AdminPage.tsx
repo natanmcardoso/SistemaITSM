@@ -715,6 +715,7 @@ export function AdminPage() {
         navItems={adminNavItems("/admin")}
         userName={auth.user.name}
         userRoleLabel="Admin"
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

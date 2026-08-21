@@ -189,6 +189,7 @@ export function KnowledgeBasePage() {
         navItems={technicianNavItems("/base-conhecimento")}
         userName={auth.user.name}
         userRoleLabel="Técnico(a)"
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

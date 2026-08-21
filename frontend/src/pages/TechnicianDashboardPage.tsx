@@ -68,6 +68,7 @@ export function TechnicianDashboardPage() {
         navItems={technicianNavItems("/meu-dashboard")}
         userName={auth.user.name}
         userRoleLabel="Técnico(a)"
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

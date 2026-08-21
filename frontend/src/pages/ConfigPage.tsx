@@ -939,6 +939,7 @@ export function ConfigPage() {
         navItems={isTechnician ? technicianNavItems("/configuracoes") : managerNavItems("/configuracoes")}
         userName={auth.user.name}
         userRoleLabel={isTechnician ? "Técnico(a)" : "Gestor(a)"}
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

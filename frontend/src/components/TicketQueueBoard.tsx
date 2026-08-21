@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, listTickets } from "../api";
@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import { CATEGORY_NAMES, USER_NAMES } from "../devData";
 import type { TicketOut, TicketPriority } from "../types";
 import { IconColumns } from "./icons";
+import { hasQueueFilterPreference, loadQueueFilterPreference } from "./queuePreferences";
 import { PriorityBadge } from "./PriorityBadge";
 import { StatusBadge } from "./StatusBadge";
 
@@ -35,7 +36,7 @@ const PRIORITY_TEXT: Record<TicketPriority, string> = {
 const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 const STATUS_RANK: Record<string, number> = { open: 0, in_progress: 1, resolved: 2, closed: 3 };
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
+export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Todos" },
   { value: "open", label: "Aberto" },
   { value: "in_progress", label: "Em andamento" },
@@ -432,6 +433,27 @@ export function TicketQueueBoard({ scope, priorityCardsLabel }: TicketQueueBoard
   const sla = searchParams.get("sla") ?? "";
   const [searchInput, setSearchInput] = useState(q);
   const hasActiveFilters = Boolean(status || priority || category || q || sla);
+
+  // Fase 14 (Prioridades — preferências de visualização): se a tela abriu
+  // sem nenhum filtro/busca na URL (nem os que chegam via link do
+  // dashboard, ex. sla=breached) e o técnico salvou um filtro padrão em
+  // /preferencias, aplica ele uma vez ao montar — depois disso, a URL volta
+  // a ser a única fonte de verdade (não reaplica se o técnico limpar os
+  // filtros manualmente na mesma sessão).
+  const appliedPreferenceRef = useRef(false);
+  useEffect(() => {
+    if (appliedPreferenceRef.current) return;
+    appliedPreferenceRef.current = true;
+    if (hasActiveFilters) return;
+    const pref = loadQueueFilterPreference();
+    if (!hasQueueFilterPreference(pref)) return;
+    const next = new URLSearchParams(searchParams);
+    if (pref.status) next.set("status", pref.status);
+    if (pref.priority) next.set("priority", pref.priority);
+    if (pref.category) next.set("category", pref.category);
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setSearchInput(q);

@@ -192,6 +192,15 @@ export function IconShield(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconUser(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.8 20c1-3.7 3.9-6 7.2-6s6.2 2.3 7.2 6" />
+    </Icon>
+  );
+}
+
 export function IconHome(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

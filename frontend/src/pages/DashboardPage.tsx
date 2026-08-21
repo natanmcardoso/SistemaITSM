@@ -109,6 +109,7 @@ export function DashboardPage() {
         navItems={managerNavItems("/dashboard")}
         userName={auth.user.name}
         userRoleLabel="Gestor(a)"
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

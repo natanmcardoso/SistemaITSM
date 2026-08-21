@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, createTicket, getKbArticlesByCategory, listServices, resolveByUser } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { PriorityBadge } from "../components/PriorityBadge";
-import { IconCheck, IconHome, IconLayers, IconLogout, IconSparkle, IconTicket } from "../components/icons";
+import { IconCheck, IconHome, IconLayers, IconLogout, IconSparkle, IconTicket, IconUser } from "../components/icons";
 import { CATEGORY_NAMES } from "../devData";
 import type { KBArticleOut, ServiceOut, TicketOut } from "../types";
 
@@ -146,6 +146,13 @@ export function NewTicketPage() {
               className="rounded-full border-[1.5px] border-primary px-4 py-2 text-[13px] font-bold text-primary hover:bg-primary-tint"
             >
               Meus chamados
+            </Link>
+            <Link
+              to="/perfil"
+              aria-label="Perfil"
+              className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+            >
+              <IconUser width={15} height={15} />
             </Link>
             <button
               onClick={() => {

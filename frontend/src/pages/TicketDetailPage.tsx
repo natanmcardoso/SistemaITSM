@@ -328,6 +328,7 @@ export function TicketDetailPage() {
           navItems={isTechnician ? technicianNavItems("") : managerNavItems("")}
           userName={auth.user.name}
           userRoleLabel={isTechnician ? "Técnico(a)" : "Gestor(a)"}
+          userRole={auth.user.role}
           onSignOut={() => {
             signOut();
             navigate("/login");

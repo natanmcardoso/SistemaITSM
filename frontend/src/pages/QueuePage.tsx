@@ -29,6 +29,7 @@ export function QueuePage() {
         navItems={isManager ? managerNavItems("/fila") : technicianNavItems("/fila")}
         userName={auth.user.name}
         userRoleLabel={isManager ? "Gestor(a)" : "Técnico(a)"}
+        userRole={auth.user.role}
         onSignOut={() => {
           signOut();
           navigate("/login");

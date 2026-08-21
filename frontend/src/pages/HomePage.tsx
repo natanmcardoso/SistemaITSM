@@ -85,6 +85,7 @@ export function HomePage() {
           navItems={technicianNavItems("/inicio")}
           userName={auth.user.name}
           userRoleLabel="Técnico(a)"
+          userRole={auth.user.role}
           onSignOut={() => {
             signOut();
             navigate("/login");
@@ -110,6 +111,7 @@ export function HomePage() {
           navItems={managerNavItems("/inicio")}
           userName={auth.user.name}
           userRoleLabel="Gestor(a)"
+          userRole={auth.user.role}
           onSignOut={() => {
             signOut();
             navigate("/login");
@@ -134,6 +136,7 @@ export function HomePage() {
           navItems={adminNavItems("/inicio")}
           userName={auth.user.name}
           userRoleLabel="Admin"
+          userRole={auth.user.role}
           onSignOut={() => {
             signOut();
             navigate("/login");
