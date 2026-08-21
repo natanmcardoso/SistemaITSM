@@ -1,5 +1,7 @@
 import type {
   AuditLogOut,
+  BusinessHoursOut,
+  BusinessHoursUpdate,
   CategoryCreate,
   CategoryOut,
   CategoryUpdate,
@@ -7,6 +9,8 @@ import type {
   GroupCreate,
   GroupMembersUpdate,
   GroupOut,
+  HolidayCreate,
+  HolidayOut,
   InteractionOut,
   KBArticleCreate,
   KBArticleOut,
@@ -46,6 +50,8 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, body.detail ?? "Erro ao chamar a API");
   }
+  // 204 No Content (ex.: DELETE /holidays/{id}) não tem corpo pra parsear.
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -162,6 +168,35 @@ export function createService(token: string, payload: ServiceCreate): Promise<Se
 
 export function updateService(token: string, serviceId: string, payload: ServiceUpdate): Promise<ServiceOut> {
   return request<ServiceOut>(`/services/${serviceId}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+}
+
+// Fase 13 (Calendário de horário comercial), restrito a technician/manager no backend.
+export function listBusinessHours(token: string): Promise<BusinessHoursOut[]> {
+  return request<BusinessHoursOut[]>("/business-hours", { method: "GET" }, token);
+}
+
+export function updateBusinessHours(
+  token: string,
+  businessHoursId: string,
+  payload: BusinessHoursUpdate,
+): Promise<BusinessHoursOut> {
+  return request<BusinessHoursOut>(
+    `/business-hours/${businessHoursId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function listHolidays(token: string): Promise<HolidayOut[]> {
+  return request<HolidayOut[]>("/holidays", { method: "GET" }, token);
+}
+
+export function createHoliday(token: string, payload: HolidayCreate): Promise<HolidayOut> {
+  return request<HolidayOut>("/holidays", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function deleteHoliday(token: string, holidayId: string): Promise<void> {
+  return request<void>(`/holidays/${holidayId}`, { method: "DELETE" }, token);
 }
 
 export function listSlaRules(token: string): Promise<SLARuleOut[]> {

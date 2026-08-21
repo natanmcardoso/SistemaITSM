@@ -3,21 +3,26 @@ import { Navigate, useNavigate } from "react-router-dom";
 import {
   ApiError,
   createCategory,
+  createHoliday,
   createService,
+  deleteHoliday,
+  listBusinessHours,
   listCategories,
+  listHolidays,
   listServices,
   listSlaRules,
+  updateBusinessHours,
   updateCategory,
   updateService,
   updateSlaRule,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { homeRouteForRole } from "../auth/routing";
-import { IconEdit, IconPlus } from "../components/icons";
+import { IconEdit, IconPlus, IconX } from "../components/icons";
 import { managerNavItems } from "../components/managerNavItems";
 import { Sidebar } from "../components/Sidebar";
 import { technicianNavItems } from "../components/technicianNavItems";
-import type { CategoryOut, ServiceOut, SLARuleOut, TicketPriority } from "../types";
+import type { BusinessHoursOut, CategoryOut, HolidayOut, ServiceOut, SLARuleOut, TicketPriority } from "../types";
 
 // Fase 10 — Configurações restantes: CRUD de categorias e edição de regras
 // de SLA, restritos a technician/manager no backend (require_role). O CRUD
@@ -36,7 +41,9 @@ const PRIORITY_LABELS: Record<TicketPriority, string> = {
   low: "Baixa",
 };
 
-type Tab = "categorias" | "servicos" | "sla";
+type Tab = "categorias" | "servicos" | "sla" | "calendarios";
+
+const WEEKDAY_LABELS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
 interface CategoryFormValues {
   name: string;
@@ -656,6 +663,260 @@ function SlaRulesSection({ token }: { token: string }) {
   );
 }
 
+// Fase 13 — Calendário de horário comercial: 1 calendário global fixo (sem
+// calendário por categoria/prioridade — decisão confirmada com o usuário).
+// Duas peças: os 7 dias da semana (aberto/fechado + horário) e os feriados
+// (data + nome, sem exclusão de dia da semana — só criar/remover).
+
+function timeInputValue(value: string | null): string {
+  // "08:00:00" (formato do backend) -> "08:00" (formato de <input type="time">)
+  return value ? value.slice(0, 5) : "";
+}
+
+function BusinessHoursRow({
+  row,
+  token,
+  onSaved,
+}: {
+  row: BusinessHoursOut;
+  token: string;
+  onSaved: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(row.is_open);
+  const [startTime, setStartTime] = useState(timeInputValue(row.start_time) || "08:00");
+  const [endTime, setEndTime] = useState(timeInputValue(row.end_time) || "18:00");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      await updateBusinessHours(token, row.id, {
+        is_open: isOpen,
+        start_time: isOpen ? `${startTime}:00` : null,
+        end_time: isOpen ? `${endTime}:00` : null,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Não foi possível salvar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]">
+      <div className="w-24 shrink-0 font-extrabold text-slate-900">{WEEKDAY_LABELS[row.weekday]}</div>
+
+      <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
+        <input
+          type="checkbox"
+          checked={isOpen}
+          onChange={(e) => setIsOpen(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        Aberto
+      </label>
+
+      {isOpen && (
+        <div className="flex items-center gap-2">
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="rounded-[10px] border-[1.5px] border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+          />
+          <span className="text-sm text-slate-400">até</span>
+          <input
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="rounded-[10px] border-[1.5px] border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+          />
+        </div>
+      )}
+
+      {error && <p className="w-full text-sm text-red-600">{error}</p>}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="ml-auto rounded-[10px] bg-primary px-4 py-2 text-[13px] font-bold text-white hover:bg-primary-dark disabled:opacity-60"
+      >
+        {saving ? "Salvando..." : "Salvar"}
+      </button>
+    </div>
+  );
+}
+
+function HolidaysSection({ token }: { token: string }) {
+  const [holidays, setHolidays] = useState<HolidayOut[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [newDate, setNewDate] = useState("");
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function reload() {
+    listHolidays(token)
+      .then(setHolidays)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Falha ao buscar os feriados."));
+  }
+
+  useEffect(reload, [token]);
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    try {
+      await createHoliday(token, { date: newDate, name: newName.trim() });
+      setNewDate("");
+      setNewName("");
+      reload();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : "Não foi possível criar o feriado.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(holidayId: string) {
+    setDeletingId(holidayId);
+    try {
+      await deleteHoliday(token, holidayId);
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Não foi possível remover o feriado.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-4 text-sm text-slate-500">
+        Datas em que o cálculo de SLA não conta horário comercial, mesmo caindo num dia normalmente aberto.
+      </p>
+
+      <form
+        onSubmit={handleCreate}
+        className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-[#C7D7FB] bg-primary-tint p-4.5"
+      >
+        <div>
+          <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="holiday-date">
+            Data
+          </label>
+          <input
+            id="holiday-date"
+            type="date"
+            required
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+            className="rounded-[10px] border-[1.5px] border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none"
+          />
+        </div>
+        <div className="min-w-48 flex-1">
+          <label className="mb-1.5 block text-[13px] font-bold text-slate-600" htmlFor="holiday-name">
+            Nome
+          </label>
+          <input
+            id="holiday-name"
+            type="text"
+            required
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Ex.: Natal"
+            className="w-full rounded-[10px] border-[1.5px] border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : "Adicionar feriado"}
+        </button>
+      </form>
+
+      {(error || formError) && <p className="mb-4 text-sm text-red-600">{error ?? formError}</p>}
+
+      {holidays === null && !error ? (
+        <p className="text-sm text-slate-500">Carregando...</p>
+      ) : holidays && holidays.length === 0 ? (
+        <p className="text-sm text-slate-500">Nenhum feriado cadastrado.</p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {holidays?.map((h) => (
+            <div
+              key={h.id}
+              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-[0_1px_2px_rgba(16,24,40,.04),0_2px_6px_rgba(16,24,40,.06)]"
+            >
+              <div className="w-28 shrink-0 text-sm font-bold text-slate-700">
+                {new Date(h.date + "T00:00:00").toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+              </div>
+              <div className="min-w-0 flex-1 font-extrabold text-slate-900">{h.name}</div>
+              <button
+                type="button"
+                onClick={() => handleDelete(h.id)}
+                disabled={deletingId === h.id}
+                aria-label="Remover feriado"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-red-600 disabled:opacity-60"
+              >
+                <IconX width={15} height={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CalendarSection({ token }: { token: string }) {
+  const [rows, setRows] = useState<BusinessHoursOut[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function reload() {
+    listBusinessHours(token)
+      .then((data) => setRows([...data].sort((a, b) => a.weekday - b.weekday)))
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Falha ao buscar o horário comercial."));
+  }
+
+  useEffect(reload, [token]);
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="mb-1.5 text-base font-extrabold text-slate-900">Horário comercial</h2>
+        <p className="mb-4 text-sm text-slate-500">
+          Usado no cálculo do prazo de SLA — chamados só "correm" dentro dessas janelas.
+        </p>
+
+        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
+        {rows === null && !error ? (
+          <p className="text-sm text-slate-500">Carregando...</p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {rows?.map((row) => (
+              <BusinessHoursRow key={row.id} row={row} token={token} onSaved={reload} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
+        <h2 className="mb-1.5 text-base font-extrabold text-slate-900">Feriados</h2>
+        <HolidaysSection token={token} />
+      </div>
+    </div>
+  );
+}
+
 export function ConfigPage() {
   const { auth, signOut } = useAuth();
   const navigate = useNavigate();
@@ -696,6 +957,7 @@ export function ConfigPage() {
               ["categorias", "Categorias"],
               ["servicos", "Serviços"],
               ["sla", "Regras de SLA"],
+              ["calendarios", "Calendários"],
             ] as [Tab, string][]
           ).map(([value, label]) => (
             <button
@@ -717,8 +979,10 @@ export function ConfigPage() {
           <CategoriesSection token={auth.token} />
         ) : tab === "servicos" ? (
           <ServicesSection token={auth.token} />
-        ) : (
+        ) : tab === "sla" ? (
           <SlaRulesSection token={auth.token} />
+        ) : (
+          <CalendarSection token={auth.token} />
         )}
       </div>
     </div>

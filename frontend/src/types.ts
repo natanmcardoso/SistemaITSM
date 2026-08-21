@@ -168,6 +168,34 @@ export interface SLARuleUpdate {
   resolution_time_hours?: number;
 }
 
+// Fase 13 (Calendário de horário comercial) — weekday segue a convenção de
+// datetime.weekday() no backend: 0=segunda...6=domingo. start_time/end_time
+// no formato "HH:MM:SS".
+export interface BusinessHoursOut {
+  id: string;
+  weekday: number;
+  is_open: boolean;
+  start_time: string | null;
+  end_time: string | null;
+}
+
+export interface BusinessHoursUpdate {
+  is_open?: boolean;
+  start_time?: string | null;
+  end_time?: string | null;
+}
+
+export interface HolidayOut {
+  id: string;
+  date: string;
+  name: string;
+}
+
+export interface HolidayCreate {
+  date: string;
+  name: string;
+}
+
 // Fase 11 (Administração — usuários, grupos, auditoria)
 export interface UserCreate {
   name: string;
