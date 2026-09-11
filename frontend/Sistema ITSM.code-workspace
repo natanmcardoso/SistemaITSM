@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../AIOps Copilot"
+		}
+	],
+	"settings": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"workbench.colorTheme": "Bearded Theme Black & Diamond",
+		"editor.cursorBlinking": "blink"
+	}
+}
